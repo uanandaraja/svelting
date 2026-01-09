@@ -3,12 +3,19 @@
 </svelte:head>
 
 <script lang="ts">
+	import { invalidate } from "$app/navigation";
 	import ChatNavbar from "$lib/components/ChatNavbar.svelte";
 	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 	import { Trash } from "$lib/icons";
-	import { getConversations, deleteConversation } from "./data.remote";
+	import { deleteConversation } from "./data.remote";
 
-	const query = getConversations();
+	// Receive data from +page.server.ts load function
+	let { data } = $props();
+
+	// Local state for optimistic updates
+	let conversations = $derived(data.conversations);
+	let localConversations = $state<typeof data.conversations | null>(null);
+	let displayConversations = $derived(localConversations ?? conversations);
 
 	let deleteDialogOpen = $state(false);
 	let conversationToDelete = $state<{ id: string; title: string } | null>(null);
@@ -38,18 +45,21 @@
 	}
 
 	async function handleConfirmDelete() {
-		if (!conversationToDelete || !query.current) return;
+		if (!conversationToDelete) return;
 
 		const idToDelete = conversationToDelete.id;
 		isDeleting = true;
 
 		try {
+			// Optimistic update
+			localConversations = displayConversations.filter((c) => c.id !== idToDelete);
 			await deleteConversation(idToDelete);
-			// Optimistic update - remove from local state instead of re-fetching
-			query.set(query.current.filter((c) => c.id !== idToDelete));
+			// Invalidate to sync with server
+			await invalidate("app:conversations");
 		} finally {
 			isDeleting = false;
 			conversationToDelete = null;
+			localConversations = null;
 		}
 	}
 
@@ -65,15 +75,7 @@
 	<main class="max-w-3xl mx-auto px-6 py-8">
 		<h1 class="text-2xl font-semibold text-foreground mb-6">your conversations</h1>
 
-		{#if query.loading}
-			<div class="flex items-center justify-center py-12">
-				<div class="size-6 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin"></div>
-			</div>
-		{:else if query.error}
-			<div class="text-center py-12">
-				<p class="text-destructive">Failed to load conversations</p>
-			</div>
-		{:else if query.current && query.current.length === 0}
+		{#if displayConversations.length === 0}
 			<div class="text-center py-12">
 				<p class="text-muted-foreground mb-4">no conversations yet</p>
 				<a
@@ -85,9 +87,10 @@
 			</div>
 		{:else}
 			<div class="space-y-2">
-				{#each query.current as conversation (conversation.id)}
+				{#each displayConversations as conversation (conversation.id)}
 					<a
 						href="/chat/{conversation.id}"
+						data-sveltekit-preload-data="hover"
 						class="block p-4 rounded-xl bg-muted hover:bg-accent transition-colors group"
 					>
 						<div class="flex items-center justify-between">
