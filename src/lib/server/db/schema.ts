@@ -58,8 +58,8 @@ export const conversation = pgTable(
 		userId: text("user_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
-		systemPrompt: text("system_prompt").notNull().default("You are a helpful AI assistant."),
-		model: text("model").notNull().default("openai/gpt-4o"),
+		systemPrompt: text("system_prompt").notNull(),
+		model: text("model").notNull(),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},

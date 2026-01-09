@@ -37,12 +37,14 @@
 		"vite": "^7.2.6"
 	},
 	"dependencies": {
-		"@effect/ai": "^0.33.2",
-		"@effect/ai-openrouter": "^0.8.1",
+		"@ai-sdk/openai": "^3.0.7",
+		"@ai-sdk/svelte": "^4.0.23",
 		"@effect/platform": "^0.94.1",
 		"@effect/platform-bun": "^0.87.0",
+		"ai": "^6.0.23",
 		"better-auth": "^1.4.10",
 		"effect": "^3.19.14",
-		"postgres": "^3.4.7"
+		"postgres": "^3.4.7",
+		"zod": "^4.3.5"
 	}
 }

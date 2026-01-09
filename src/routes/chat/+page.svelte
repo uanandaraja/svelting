@@ -3,46 +3,17 @@
 </svelte:head>
 
 <script lang="ts">
-	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
+	import { getConversations, createConversation } from "./data.remote";
 
-	interface Conversation {
-		id: string;
-		systemPrompt: string;
-		model: string;
-		createdAt: string;
-		updatedAt: string;
-	}
-
-	let conversations = $state<Conversation[]>([]);
-	let loading = $state(true);
-	let error = $state("");
-
-	onMount(async () => {
-		try {
-			const res = await fetch("/chat/api/conversations");
-			if (!res.ok) throw new Error("Failed to load");
-			const data = await res.json();
-			conversations = data.conversations;
-		} catch {
-			error = "Failed to load conversations";
-		} finally {
-			loading = false;
-		}
-	});
+	const query = getConversations();
 
 	async function createNewChat() {
 		try {
-			const res = await fetch("/chat/api/conversations", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({}),
-			});
-			if (!res.ok) throw new Error("Failed to create");
-			const conversation = await res.json();
-			goto(`/chat/${conversation.id}`);
+			const { id } = await createConversation();
+			goto(`/chat/${id}`);
 		} catch {
-			error = "Failed to create conversation";
+			// Handle error - query will show error state
 		}
 	}
 
@@ -77,15 +48,15 @@
 	<main class="max-w-3xl mx-auto px-6 py-8">
 		<h1 class="text-2xl font-semibold text-foreground mb-6">your conversations</h1>
 
-		{#if loading}
+		{#if query.loading}
 			<div class="flex items-center justify-center py-12">
 				<div class="size-6 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin"></div>
 			</div>
-		{:else if error}
+		{:else if query.error}
 			<div class="text-center py-12">
-				<p class="text-destructive">{error}</p>
+				<p class="text-destructive">Failed to load conversations</p>
 			</div>
-		{:else if conversations.length === 0}
+		{:else if query.current && query.current.length === 0}
 			<div class="text-center py-12">
 				<p class="text-muted-foreground mb-4">no conversations yet</p>
 				<button
@@ -97,7 +68,7 @@
 			</div>
 		{:else}
 			<div class="space-y-2">
-				{#each conversations as conversation (conversation.id)}
+				{#each query.current as conversation (conversation.id)}
 					<a
 						href="/chat/{conversation.id}"
 						class="block p-4 rounded-xl bg-muted hover:bg-accent transition-colors group"
