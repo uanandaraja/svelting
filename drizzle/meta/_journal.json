@@ -8,6 +8,13 @@
       "when": 1767890263368,
       "tag": "0000_stale_magus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1767933433578,
+      "tag": "0001_keen_blacklash",
+      "breakpoints": true
     }
   ]
 }
