@@ -1,186 +1,116 @@
 import * as v from "valibot";
-import { error } from "@sveltejs/kit";
-import { query, command, getRequestEvent } from "$app/server";
-import { auth } from "$lib/server/auth";
-import { db } from "$lib/server/db";
-import { conversation, message } from "$lib/server/db/schema";
-import { eq, desc, asc, and } from "drizzle-orm";
-import { SYSTEM_PROMPT, DEFAULT_MODEL } from "$lib/ai";
+import { Effect } from "effect";
+import {
+	effectQuery,
+	effectQueryWithSchema,
+	effectCommand,
+	effectCommandWithSchema,
+} from "$lib/server/effect/adapters";
+import {
+	AuthService,
+	ConversationService,
+	MessageService,
+} from "$lib/server/effect/services";
 import type { Conversation } from "$lib/ai";
 
 // ─────────────────────────────────────────────────────────────
-// Shared auth helper - returns session or throws 401
+// Auth Queries
 // ─────────────────────────────────────────────────────────────
-export const getSession = query(async () => {
-	const event = getRequestEvent();
-	const session = await auth.api.getSession({
-		headers: event.request.headers,
-	});
-	if (!session) {
-		error(401, "Unauthorized");
-	}
-	return session;
-});
 
-// ─────────────────────────────────────────────────────────────
-// Private helper: verify conversation ownership, returns raw row
-// ─────────────────────────────────────────────────────────────
-async function verifyConversationOwnership(id: string, userId: string) {
-	const conv = await db
-		.select()
-		.from(conversation)
-		.where(and(eq(conversation.id, id), eq(conversation.userId, userId)))
-		.limit(1);
+/**
+ * Get the current session or throw 401
+ */
+export const getSession = effectQuery(
+	Effect.gen(function* () {
+		const auth = yield* AuthService;
+		return yield* auth.getSession;
+	}),
+);
 
-	if (conv.length === 0) {
-		error(404, "Conversation not found");
-	}
-
-	return conv[0];
-}
+/**
+ * Get the current user or throw 401
+ */
+export const getUser = effectQuery(
+	Effect.gen(function* () {
+		const auth = yield* AuthService;
+		return yield* auth.getUser;
+	}),
+);
 
 // ─────────────────────────────────────────────────────────────
-// Get user info (for layout/pages that need user data)
+// Conversation Queries
 // ─────────────────────────────────────────────────────────────
-export const getUser = query(async () => {
-	const session = await getSession();
-	return session.user;
-});
 
-// ─────────────────────────────────────────────────────────────
-// Get all conversations for current user (with first message snippet)
-// ─────────────────────────────────────────────────────────────
-export const getConversations = query(async (): Promise<Conversation[]> => {
-	const session = await getSession();
+/**
+ * Get all conversations for the current user (with first message snippet)
+ */
+export const getConversations = effectQuery(
+	Effect.gen(function* () {
+		const service = yield* ConversationService;
+		return yield* service.getAll;
+	}),
+) as () => Promise<Conversation[]>;
 
-	const conversations = await db
-		.select()
-		.from(conversation)
-		.where(eq(conversation.userId, session.user.id))
-		.orderBy(desc(conversation.updatedAt));
+/**
+ * Get a single conversation by ID (with ownership verification)
+ */
+export const getConversation = effectQueryWithSchema(v.string(), (id) =>
+	Effect.gen(function* () {
+		const service = yield* ConversationService;
+		return yield* service.getById(id);
+	}),
+) as (id: string) => Promise<Conversation>;
 
-	// Fetch first user message for each conversation
-	const conversationsWithMessages = await Promise.all(
-		conversations.map(async (c) => {
-			const firstMsg = await db
-				.select({ content: message.content })
-				.from(message)
-				.where(and(eq(message.conversationId, c.id), eq(message.role, "user")))
-				.orderBy(asc(message.createdAt))
-				.limit(1);
+/**
+ * Get raw conversation row (for internal use like streaming)
+ */
+export const getConversationRaw = effectQueryWithSchema(v.string(), (id) =>
+	Effect.gen(function* () {
+		const service = yield* ConversationService;
+		return yield* service.getRaw(id);
+	}),
+);
 
-			return {
-				id: c.id,
-				systemPrompt: c.systemPrompt,
-				model: c.model,
-				createdAt: c.createdAt.toISOString(),
-				updatedAt: c.updatedAt.toISOString(),
-				firstMessage: firstMsg[0]?.content,
-			};
-		}),
-	);
+/**
+ * Get messages for a conversation (with ownership check)
+ */
+export const getMessages = effectQueryWithSchema(v.string(), (id) =>
+	Effect.gen(function* () {
+		const service = yield* MessageService;
+		return yield* service.getForConversation(id);
+	}),
+);
 
-	return conversationsWithMessages;
-});
-
-// ─────────────────────────────────────────────────────────────
-// Get single conversation with ownership verification
-// ─────────────────────────────────────────────────────────────
-export const getConversation = query(v.string(), async (id): Promise<Conversation> => {
-	const session = await getSession();
-	const conv = await verifyConversationOwnership(id, session.user.id);
-
-	return {
-		id: conv.id,
-		systemPrompt: conv.systemPrompt,
-		model: conv.model,
-		createdAt: conv.createdAt.toISOString(),
-		updatedAt: conv.updatedAt.toISOString(),
-	};
-});
+/**
+ * Get conversation with all messages (combined to avoid waterfall)
+ */
+export const getConversationWithMessages = effectQueryWithSchema(v.string(), (id) =>
+	Effect.gen(function* () {
+		const service = yield* ConversationService;
+		return yield* service.getWithMessages(id);
+	}),
+);
 
 // ─────────────────────────────────────────────────────────────
-// Get raw conversation row (for internal use, e.g., streaming)
+// Conversation Commands
 // ─────────────────────────────────────────────────────────────
-export const getConversationRaw = query(v.string(), async (id) => {
-	const session = await getSession();
-	return verifyConversationOwnership(id, session.user.id);
-});
 
-// ─────────────────────────────────────────────────────────────
-// Get messages for a conversation (with ownership check)
-// ─────────────────────────────────────────────────────────────
-export const getMessages = query(v.string(), async (id) => {
-	// Verify ownership by fetching conversation first
-	await getConversation(id);
+/**
+ * Create a new conversation
+ */
+export const createConversation = effectCommand(
+	Effect.gen(function* () {
+		const service = yield* ConversationService;
+		return yield* service.create;
+	}),
+) as () => Promise<{ id: string }>;
 
-	const msgs = await db
-		.select()
-		.from(message)
-		.where(eq(message.conversationId, id))
-		.orderBy(asc(message.createdAt));
-
-	return msgs.map((m) => ({
-		id: m.id,
-		role: m.role,
-		content: m.content,
-		createdAt: m.createdAt.toISOString(),
-	}));
-});
-
-// ─────────────────────────────────────────────────────────────
-// Get conversation with messages (combined to avoid waterfall)
-// ─────────────────────────────────────────────────────────────
-export const getConversationWithMessages = query(v.string(), async (id) => {
-	const session = await getSession();
-	const conv = await verifyConversationOwnership(id, session.user.id);
-
-	const msgs = await db
-		.select()
-		.from(message)
-		.where(eq(message.conversationId, id))
-		.orderBy(asc(message.createdAt));
-
-	return {
-		conversation: {
-			id: conv.id,
-			systemPrompt: conv.systemPrompt,
-			model: conv.model,
-			createdAt: conv.createdAt.toISOString(),
-			updatedAt: conv.updatedAt.toISOString(),
-		} as Conversation,
-		messages: msgs.map((m) => ({
-			id: m.id,
-			role: m.role,
-			content: m.content,
-			createdAt: m.createdAt.toISOString(),
-		})),
-	};
-});
-
-// ─────────────────────────────────────────────────────────────
-// Create a new conversation
-// ─────────────────────────────────────────────────────────────
-export const createConversation = command(async (): Promise<{ id: string }> => {
-	const session = await getSession();
-
-	const conversationId = crypto.randomUUID();
-
-	await db.insert(conversation).values({
-		id: conversationId,
-		userId: session.user.id,
-		systemPrompt: SYSTEM_PROMPT,
-		model: DEFAULT_MODEL,
-	});
-
-	return { id: conversationId };
-});
-
-// ─────────────────────────────────────────────────────────────
-// Delete a conversation (messages cascade automatically)
-// ─────────────────────────────────────────────────────────────
-export const deleteConversation = command(v.string(), async (id): Promise<void> => {
-	const session = await getSession();
-	await verifyConversationOwnership(id, session.user.id);
-	await db.delete(conversation).where(eq(conversation.id, id));
-});
+/**
+ * Delete a conversation (messages cascade automatically)
+ */
+export const deleteConversation = effectCommandWithSchema(v.string(), (id) =>
+	Effect.gen(function* () {
+		const service = yield* ConversationService;
+		return yield* service.delete(id);
+	}),
+) as (id: string) => Promise<void>;
