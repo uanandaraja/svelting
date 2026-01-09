@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { Chat, type UIMessage } from "@ai-sdk/svelte";
 	import { DefaultChatTransport } from "ai";
+	import { Streamdown } from "svelte-streamdown";
+	import Code from "svelte-streamdown/code";
 	import { ArrowUp } from "$lib/icons";
 	import ChatNavbar from "$lib/components/ChatNavbar.svelte";
+	import { extractTextFromParts } from "$lib/ai";
 
 	// Receive data from +page.server.ts load function
 	let { data } = $props();
@@ -87,6 +90,30 @@
 			scrollToBottom();
 		}
 	});
+
+	// Custom theme for Streamdown to match our design
+	const streamdownTheme = {
+		paragraph: { base: "mb-5 leading-relaxed [&:last-child]:mb-0" },
+		h1: { base: "text-2xl font-bold mt-6 mb-3" },
+		h2: { base: "text-xl font-bold mt-5 mb-2" },
+		h3: { base: "text-lg font-semibold mt-4 mb-2" },
+		h4: { base: "text-base font-semibold mt-3 mb-1" },
+		ul: { base: "list-disc list-inside my-3 space-y-1" },
+		ol: { base: "list-decimal list-inside my-3 space-y-1" },
+		li: { base: "leading-relaxed" },
+		blockquote: { base: "border-l-4 border-muted-foreground/30 pl-4 my-4 italic text-muted-foreground" },
+		link: { base: "text-primary underline underline-offset-2 hover:text-primary/80" },
+		codespan: { base: "bg-muted/80 px-1.5 py-0.5 rounded text-sm font-mono" },
+		code: {
+			base: "my-4 rounded-lg border border-border overflow-hidden",
+			container: "relative overflow-visible bg-muted/50 p-3 font-mono text-sm",
+			header: "flex items-center justify-between px-3 py-2 bg-muted/80 border-b border-border text-xs",
+			language: "font-mono text-muted-foreground",
+			buttons: "text-muted-foreground hover:text-foreground transition-colors",
+			pre: "overflow-x-auto text-sm",
+		},
+		hr: { base: "my-6 border-border" },
+	};
 </script>
 
 <svelte:head>
@@ -106,17 +133,27 @@
 			{:else}
 				{#each messages as message (message.id)}
 					<div class="flex {message.role === 'user' ? 'justify-end' : 'justify-start'}">
-						<div
-							class="max-w-[80%] rounded-2xl px-4 py-3 {message.role === 'user'
-								? 'bg-primary text-primary-foreground'
-								: 'bg-muted text-foreground'}"
-						>
-							{#each message.parts as part}
-								{#if part.type === "text"}
-									<p class="whitespace-pre-wrap">{part.text}</p>
-								{/if}
-							{/each}
-						</div>
+						{#if message.role === "user"}
+							<!-- User messages: simple styled bubble -->
+							<div class="max-w-[80%] rounded-2xl px-4 py-3 bg-primary text-primary-foreground">
+								<p class="whitespace-pre-wrap">{extractTextFromParts(message.parts)}</p>
+							</div>
+						{:else}
+							<!-- Assistant messages: rendered with Streamdown -->
+							<div class="max-w-[80%] rounded-2xl px-4 py-3 bg-muted text-foreground">
+								<Streamdown
+									content={extractTextFromParts(message.parts)}
+									theme={streamdownTheme}
+									components={{ code: Code }}
+									animation={{
+										enabled: isStreaming,
+										type: "fade",
+										duration: 300,
+										tokenize: "word",
+									}}
+								/>
+							</div>
+						{/if}
 					</div>
 				{/each}
 			{/if}

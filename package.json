@@ -46,6 +46,7 @@
     "better-auth": "^1.4.10",
     "effect": "^3.19.14",
     "postgres": "^3.4.7",
+    "svelte-streamdown": "^3.0.1",
     "valibot": "^1.2.0",
     "zod": "^4.3.5"
   }

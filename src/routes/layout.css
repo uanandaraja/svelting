@@ -1,6 +1,9 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
+/* Add svelte-streamdown styles to Tailwind build */
+@source "../node_modules/svelte-streamdown/**/*";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
