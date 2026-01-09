@@ -16,4 +16,5 @@ export interface Conversation {
 	model: string;
 	createdAt: string;
 	updatedAt: string;
+	firstMessage?: string;
 }

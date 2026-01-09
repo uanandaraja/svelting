@@ -1,67 +1,26 @@
 import { json, error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { auth } from "$lib/server/auth";
 import { db } from "$lib/server/db";
 import { conversation, message } from "$lib/server/db/schema";
-import { eq, asc, and } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { streamText } from "ai";
 import { openrouter, extractTextFromParts } from "$lib/server/ai";
 import type { UIMessage } from "$lib/ai";
+import { getSession, getConversationRaw, getMessages } from "../../../data.remote";
 
 // Get messages for a conversation
-export const GET: RequestHandler = async ({ request, params }) => {
-	const session = await auth.api.getSession({
-		headers: request.headers,
-	});
-
-	if (!session) {
-		error(401, "Unauthorized");
-	}
-
+export const GET: RequestHandler = async ({ params }) => {
 	const { id } = params;
-
-	// Verify conversation ownership
-	const conv = await db
-		.select()
-		.from(conversation)
-		.where(and(eq(conversation.id, id), eq(conversation.userId, session.user.id)))
-		.limit(1);
-
-	if (conv.length === 0) {
-		error(404, "Conversation not found");
-	}
-
-	const messages = await db
-		.select()
-		.from(message)
-		.where(eq(message.conversationId, id))
-		.orderBy(asc(message.createdAt));
-
+	const messages = await getMessages(id);
 	return json({ messages });
 };
 
 // Send a message and stream AI response
 export const POST: RequestHandler = async ({ request, params }) => {
-	const session = await auth.api.getSession({
-		headers: request.headers,
-	});
-
-	if (!session) {
-		error(401, "Unauthorized");
-	}
-
+	// Auth + ownership check via shared helpers
+	await getSession();
+	const conv = await getConversationRaw(params.id);
 	const { id } = params;
-
-	// Verify conversation ownership
-	const conv = await db
-		.select()
-		.from(conversation)
-		.where(and(eq(conversation.id, id), eq(conversation.userId, session.user.id)))
-		.limit(1);
-
-	if (conv.length === 0) {
-		error(404, "Conversation not found");
-	}
 
 	const body = await request.json();
 
@@ -112,8 +71,8 @@ export const POST: RequestHandler = async ({ request, params }) => {
 
 	// Stream AI response
 	const result = streamText({
-		model: openrouter(conv[0].model),
-		system: conv[0].systemPrompt,
+		model: openrouter.chat(conv.model),
+		system: conv.systemPrompt,
 		messages: aiMessages,
 		onFinish: async ({ text }) => {
 			// Save assistant message after streaming completes

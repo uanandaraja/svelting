@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import PromptInput from "$lib/components/PromptInput.svelte";
+  import { createConversation } from "./chat/data.remote";
 
   let error = $state("");
   let isLoading = $state(false);
@@ -15,29 +16,19 @@
       // Store the message in sessionStorage for the chat page to pick up
       sessionStorage.setItem("pendingMessage", message.trim());
 
-      // Create conversation WITHOUT the first message
-      const res = await fetch("/chat/api/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-
-      if (res.status === 401) {
-        // Not authenticated, redirect to auth
-        // Keep the message in storage for after auth
-        goto("/auth");
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error("Failed to create conversation");
-      }
-
-      const { id } = await res.json();
+      // Create conversation using remote function
+      const { id } = await createConversation();
       goto(`/chat/${id}`);
     } catch (e) {
       // Clear storage on error
       sessionStorage.removeItem("pendingMessage");
+      
+      // Check if it's an auth error (401)
+      if (e instanceof Error && e.message.includes("401")) {
+        goto("/auth");
+        return;
+      }
+      
       error = e instanceof Error ? e.message : "Something went wrong";
       isLoading = false;
     }

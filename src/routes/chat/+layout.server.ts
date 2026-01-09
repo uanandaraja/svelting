@@ -1,17 +1,14 @@
 import { redirect } from "@sveltejs/kit";
-import { auth } from "$lib/server/auth";
-import type { RequestEvent } from "@sveltejs/kit";
+import { getSession } from "./data.remote";
 
-export async function load({ request }: RequestEvent) {
-	const session = await auth.api.getSession({
-		headers: request.headers,
-	});
-
-	if (!session) {
+export async function load() {
+	try {
+		const session = await getSession();
+		return {
+			user: session.user,
+		};
+	} catch {
+		// getSession throws 401 if not authenticated, redirect to auth
 		redirect(303, "/auth");
 	}
-
-	return {
-		user: session.user,
-	};
 }

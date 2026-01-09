@@ -3,19 +3,16 @@
 </svelte:head>
 
 <script lang="ts">
-	import { goto } from "$app/navigation";
-	import { getConversations, createConversation } from "./data.remote";
+	import ChatNavbar from "$lib/components/ChatNavbar.svelte";
+	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+	import { Trash } from "$lib/icons";
+	import { getConversations, deleteConversation } from "./data.remote";
 
 	const query = getConversations();
 
-	async function createNewChat() {
-		try {
-			const { id } = await createConversation();
-			goto(`/chat/${id}`);
-		} catch {
-			// Handle error - query will show error state
-		}
-	}
+	let deleteDialogOpen = $state(false);
+	let conversationToDelete = $state<{ id: string; title: string } | null>(null);
+	let isDeleting = $state(false);
 
 	function formatDate(dateStr: string) {
 		const date = new Date(dateStr);
@@ -26,23 +23,43 @@
 			minute: "2-digit",
 		});
 	}
+
+	function truncate(text: string | undefined, maxLength: number): string {
+		if (!text) return "New conversation";
+		if (text.length <= maxLength) return text;
+		return text.slice(0, maxLength).trim() + "...";
+	}
+
+	function handleDeleteClick(e: MouseEvent, id: string, firstMessage: string | undefined) {
+		e.preventDefault();
+		e.stopPropagation();
+		conversationToDelete = { id, title: truncate(firstMessage, 40) };
+		deleteDialogOpen = true;
+	}
+
+	async function handleConfirmDelete() {
+		if (!conversationToDelete || !query.current) return;
+
+		const idToDelete = conversationToDelete.id;
+		isDeleting = true;
+
+		try {
+			await deleteConversation(idToDelete);
+			// Optimistic update - remove from local state instead of re-fetching
+			query.set(query.current.filter((c) => c.id !== idToDelete));
+		} finally {
+			isDeleting = false;
+			conversationToDelete = null;
+		}
+	}
+
+	function handleCancelDelete() {
+		conversationToDelete = null;
+	}
 </script>
 
 <div class="min-h-screen bg-background">
-	<!-- Header -->
-	<header class="border-b border-border px-6 py-4">
-		<div class="max-w-3xl mx-auto flex items-center justify-between">
-			<a href="/" class="text-lg font-semibold text-foreground hover:text-foreground/80 transition-colors">
-				svelting
-			</a>
-			<button
-				onclick={createNewChat}
-				class="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-			>
-				new chat
-			</button>
-		</div>
-	</header>
+	<ChatNavbar />
 
 	<!-- Content -->
 	<main class="max-w-3xl mx-auto px-6 py-8">
@@ -59,12 +76,12 @@
 		{:else if query.current && query.current.length === 0}
 			<div class="text-center py-12">
 				<p class="text-muted-foreground mb-4">no conversations yet</p>
-				<button
-					onclick={createNewChat}
+				<a
+					href="/"
 					class="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
 				>
 					start your first chat
-				</button>
+				</a>
 			</div>
 		{:else}
 			<div class="space-y-2">
@@ -76,20 +93,30 @@
 						<div class="flex items-center justify-between">
 							<div class="flex-1 min-w-0">
 								<p class="text-sm font-medium text-foreground truncate">
-									{conversation.model}
+									{truncate(conversation.firstMessage, 50)}
 								</p>
 								<p class="text-xs text-muted-foreground mt-1">
 									{formatDate(conversation.updatedAt)}
 								</p>
 							</div>
-							<svg
-								class="size-5 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0 ml-4"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-							</svg>
+							<div class="flex items-center gap-2 ml-4">
+								<button
+									type="button"
+									onclick={(e) => handleDeleteClick(e, conversation.id, conversation.firstMessage)}
+									class="p-2 rounded-lg text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
+									aria-label="Delete conversation"
+								>
+									<Trash class="size-4" />
+								</button>
+								<svg
+									class="size-5 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+								</svg>
+							</div>
 						</div>
 					</a>
 				{/each}
@@ -97,3 +124,14 @@
 		{/if}
 	</main>
 </div>
+
+<ConfirmDialog
+	bind:open={deleteDialogOpen}
+	title="Delete conversation?"
+	description={`This will permanently delete "${conversationToDelete?.title ?? ''}". This action cannot be undone.`}
+	confirmText={isDeleting ? "Deleting..." : "Delete"}
+	cancelText="Cancel"
+	destructive
+	onConfirm={handleConfirmDelete}
+	onCancel={handleCancelDelete}
+/>
