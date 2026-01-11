@@ -25,8 +25,16 @@ export {
 	createConversation,
 	deleteConversation,
 } from "./Conversation";
-export type { ConversationServiceShape, MessageData, ConversationWithMessages } from "./Conversation";
+export type {
+	ConversationServiceShape,
+	MessageData,
+	ConversationWithMessages,
+} from "./Conversation";
 
 // Message
-export { MessageService, MessageLive, getMessagesForConversation } from "./Message";
+export {
+	MessageService,
+	MessageLive,
+	getMessagesForConversation,
+} from "./Message";
 export type { MessageServiceShape } from "./Message";

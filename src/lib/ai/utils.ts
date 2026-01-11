@@ -5,9 +5,14 @@ import type { TextPart } from "./types";
  * Works on both client and server.
  * Accepts any array of parts with type/text fields.
  */
-export function extractTextFromParts(parts: readonly { type: string; text?: string }[]): string {
+export function extractTextFromParts(
+	parts: readonly { type: string; text?: string }[],
+): string {
 	return parts
-		.filter((part): part is TextPart => part.type === "text" && typeof part.text === "string")
+		.filter(
+			(part): part is TextPart =>
+				part.type === "text" && typeof part.text === "string",
+		)
 		.map((part) => part.text)
 		.join("");
 }

@@ -45,12 +45,16 @@ export interface ConversationServiceShape {
 	/**
 	 * Get a single conversation by ID (with ownership check)
 	 */
-	readonly getById: (id: string) => Effect.Effect<Conversation, ConvoErrors, ConvoContext>;
+	readonly getById: (
+		id: string,
+	) => Effect.Effect<Conversation, ConvoErrors, ConvoContext>;
 
 	/**
 	 * Get raw conversation row (for internal use like streaming)
 	 */
-	readonly getRaw: (id: string) => Effect.Effect<ConversationRow, ConvoErrors, ConvoContext>;
+	readonly getRaw: (
+		id: string,
+	) => Effect.Effect<ConversationRow, ConvoErrors, ConvoContext>;
 
 	/**
 	 * Get conversation with all its messages
@@ -67,7 +71,9 @@ export interface ConversationServiceShape {
 	/**
 	 * Delete a conversation (messages cascade automatically)
 	 */
-	readonly delete: (id: string) => Effect.Effect<void, ConvoErrors, ConvoContext>;
+	readonly delete: (
+		id: string,
+	) => Effect.Effect<void, ConvoErrors, ConvoContext>;
 }
 
 export class ConversationService extends Context.Tag("ConversationService")<
@@ -91,12 +97,19 @@ const verifyOwnership = (id: string) =>
 			db
 				.select()
 				.from(conversation)
-				.where(and(eq(conversation.id, id), eq(conversation.userId, session.user.id)))
+				.where(
+					and(
+						eq(conversation.id, id),
+						eq(conversation.userId, session.user.id),
+					),
+				)
 				.limit(1),
 		);
 
 		if (conv.length === 0) {
-			return yield* Effect.fail(new NotFoundError({ resource: "Conversation", id }));
+			return yield* Effect.fail(
+				new NotFoundError({ resource: "Conversation", id }),
+			);
 		}
 
 		return conv[0];
@@ -139,7 +152,9 @@ export const ConversationLive = Layer.succeed(
 						db
 							.select({ content: message.content })
 							.from(message)
-							.where(and(eq(message.conversationId, c.id), eq(message.role, "user")))
+							.where(
+								and(eq(message.conversationId, c.id), eq(message.role, "user")),
+							)
 							.orderBy(asc(message.createdAt))
 							.limit(1),
 					).pipe(
@@ -161,7 +176,8 @@ export const ConversationLive = Layer.succeed(
 			return withMessages;
 		}),
 
-		getById: (id: string) => verifyOwnership(id).pipe(Effect.map(toConversation)),
+		getById: (id: string) =>
+			verifyOwnership(id).pipe(Effect.map(toConversation)),
 
 		getRaw: (id: string) => verifyOwnership(id),
 
@@ -208,7 +224,9 @@ export const ConversationLive = Layer.succeed(
 		delete: (id: string) =>
 			Effect.gen(function* () {
 				yield* verifyOwnership(id);
-				yield* runQuery((db) => db.delete(conversation).where(eq(conversation.id, id)));
+				yield* runQuery((db) =>
+					db.delete(conversation).where(eq(conversation.id, id)),
+				);
 			}),
 	}),
 );

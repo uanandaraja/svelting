@@ -16,7 +16,11 @@ export interface AuthServiceShape {
 	/**
 	 * Get the current session or fail with UnauthorizedError
 	 */
-	readonly getSession: Effect.Effect<Session, UnauthorizedError, RequestContext>;
+	readonly getSession: Effect.Effect<
+		Session,
+		UnauthorizedError,
+		RequestContext
+	>;
 
 	/**
 	 * Get the current user or fail with UnauthorizedError
@@ -24,7 +28,10 @@ export interface AuthServiceShape {
 	readonly getUser: Effect.Effect<User, UnauthorizedError, RequestContext>;
 }
 
-export class AuthService extends Context.Tag("AuthService")<AuthService, AuthServiceShape>() {}
+export class AuthService extends Context.Tag("AuthService")<
+	AuthService,
+	AuthServiceShape
+>() {}
 
 // Internal helper for getting session (used to avoid circular ref)
 const _getSession = Effect.gen(function* () {
@@ -36,7 +43,9 @@ const _getSession = Effect.gen(function* () {
 	});
 
 	if (!session) {
-		return yield* Effect.fail(new UnauthorizedError({ message: "Not authenticated" }));
+		return yield* Effect.fail(
+			new UnauthorizedError({ message: "Not authenticated" }),
+		);
 	}
 
 	return session;

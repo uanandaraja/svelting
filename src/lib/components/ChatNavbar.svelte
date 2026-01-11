@@ -1,9 +1,9 @@
 <script lang="ts">
-	interface Props {
-		rightContent?: import("svelte").Snippet;
-	}
+interface Props {
+	rightContent?: import("svelte").Snippet;
+}
 
-	let { rightContent }: Props = $props();
+let { rightContent }: Props = $props();
 </script>
 
 <header class="border-b border-border px-6 py-4 flex-shrink-0">

@@ -1,131 +1,180 @@
 <script lang="ts">
-	import { Chat, type UIMessage } from "@ai-sdk/svelte";
-	import { DefaultChatTransport } from "ai";
-	import { Streamdown } from "svelte-streamdown";
-	import Code from "svelte-streamdown/code";
-	import { ArrowUp } from "$lib/icons";
-	import ChatNavbar from "$lib/components/ChatNavbar.svelte";
-	import { extractTextFromParts } from "$lib/ai";
+import { Chat, type UIMessage } from "@ai-sdk/svelte";
+import { DefaultChatTransport } from "ai";
+import { Streamdown } from "svelte-streamdown";
+import Code from "svelte-streamdown/code";
+import gruvboxLight from "@shikijs/themes/gruvbox-light-hard";
+import gruvboxDark from "@shikijs/themes/gruvbox-dark-hard";
+import { ArrowUp } from "$lib/icons";
+import { extractTextFromParts } from "$lib/ai";
+import { invalidate } from "$app/navigation";
+import { onMount } from "svelte";
 
-	// Receive data from +page.server.ts load function
-	let { data } = $props();
+const shikiThemes = {
+	"gruvbox-light-hard": gruvboxLight,
+	"gruvbox-dark-hard": gruvboxDark,
+};
 
-	let chat = $state<Chat | null>(null);
-	let input = $state("");
-	let textareaRef = $state<HTMLTextAreaElement | null>(null);
-	let messagesEndRef = $state<HTMLDivElement | null>(null);
-	let initialized = $state(false);
-
-	const isStreaming = $derived(chat?.status === "streaming");
-	const isReady = $derived(chat?.status === "ready");
-	const messages = $derived(chat?.messages ?? []);
-
-	// Initialize chat when component mounts with server data
-	$effect(() => {
-		if (data && !initialized) {
-			const { conversation, messages: dbMessages } = data;
-
-			// Convert DB messages to UI messages format
-			const uiMessages: UIMessage[] = dbMessages.map((msg) => ({
-				id: msg.id,
-				role: msg.role as "user" | "assistant",
-				parts: [{ type: "text" as const, text: msg.content }],
-				createdAt: new Date(msg.createdAt),
-			}));
-
-			chat = new Chat({
-				id: conversation.id,
-				messages: uiMessages,
-				transport: new DefaultChatTransport({
-					api: `/chat/${conversation.id}/api/messages`,
-				}),
-			});
-
-			initialized = true;
-
-			// Check for pending message from homepage and send it
-			const pendingMessage = sessionStorage.getItem("pendingMessage");
-			if (pendingMessage) {
-				sessionStorage.removeItem("pendingMessage");
-				chat.sendMessage({ text: pendingMessage });
-				scrollToBottom();
-			}
-		}
+// Dark mode detection
+let isDark = $state(false);
+onMount(() => {
+	const checkTheme = () => {
+		isDark =
+			document.documentElement.classList.contains("dark") ||
+			document.body.classList.contains("dark");
+	};
+	checkTheme();
+	const observer = new MutationObserver(checkTheme);
+	observer.observe(document.documentElement, {
+		attributes: true,
+		attributeFilter: ["class"],
 	});
+	return () => observer.disconnect();
+});
+const shikiTheme = $derived(
+	isDark ? "gruvbox-dark-hard" : "gruvbox-light-hard",
+);
 
-	function autoResize() {
-		if (textareaRef) {
-			textareaRef.style.height = "auto";
-			textareaRef.style.height = Math.min(textareaRef.scrollHeight, 192) + "px";
-		}
-	}
+// Receive data from +page.server.ts load function
+let { data } = $props();
 
-	function scrollToBottom() {
-		messagesEndRef?.scrollIntoView({ behavior: "smooth" });
-	}
+let chat = $state<Chat | null>(null);
+let input = $state("");
+let textareaRef = $state<HTMLTextAreaElement | null>(null);
+let messagesEndRef = $state<HTMLDivElement | null>(null);
+let currentConversationId = $state<string | null>(null);
+let hasSentFirstMessage = $state(false);
 
-	async function handleSubmit() {
-		if (!input.trim() || !isReady || !chat) return;
+const isStreaming = $derived(chat?.status === "streaming");
+const isReady = $derived(chat?.status === "ready");
+const messages = $derived(chat?.messages ?? []);
 
-		const text = input.trim();
-		input = "";
-		if (textareaRef) {
-			textareaRef.style.height = "auto";
-		}
+// Initialize/reinitialize chat when conversation changes
+$effect(() => {
+	const { conversation, messages: dbMessages } = data;
 
-		await chat.sendMessage({ text });
-		scrollToBottom();
-	}
+	// Only reinitialize if the conversation ID changed
+	if (currentConversationId !== conversation.id) {
+		currentConversationId = conversation.id;
+		hasSentFirstMessage = dbMessages.length > 0;
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === "Enter" && !e.shiftKey) {
-			e.preventDefault();
-			handleSubmit();
-		}
-	}
+		// Convert DB messages to UI messages format
+		const uiMessages: UIMessage[] = dbMessages.map((msg) => ({
+			id: msg.id,
+			role: msg.role as "user" | "assistant",
+			parts: [{ type: "text" as const, text: msg.content }],
+			createdAt: new Date(msg.createdAt),
+		}));
 
-	$effect(() => {
-		// Auto-scroll when messages change
-		if (messages.length > 0) {
+		chat = new Chat({
+			id: conversation.id,
+			messages: uiMessages,
+			transport: new DefaultChatTransport({
+				api: `/chat/${conversation.id}/api/messages`,
+			}),
+		});
+
+		// Check for pending message from homepage and send it
+		const pendingMessage = sessionStorage.getItem("pendingMessage");
+		if (pendingMessage) {
+			sessionStorage.removeItem("pendingMessage");
+			chat.sendMessage({ text: pendingMessage });
+			hasSentFirstMessage = true;
+			// Invalidate after a short delay to let the message be saved
+			setTimeout(() => invalidate("app:conversations"), 1000);
 			scrollToBottom();
 		}
-	});
+	}
+});
 
-	// Custom theme for Streamdown to match our design
-	const streamdownTheme = {
-		paragraph: { base: "mb-5 leading-relaxed [&:last-child]:mb-0" },
-		h1: { base: "text-2xl font-bold mt-6 mb-3" },
-		h2: { base: "text-xl font-bold mt-5 mb-2" },
-		h3: { base: "text-lg font-semibold mt-4 mb-2" },
-		h4: { base: "text-base font-semibold mt-3 mb-1" },
-		ul: { base: "list-disc list-inside my-3 space-y-1" },
-		ol: { base: "list-decimal list-inside my-3 space-y-1" },
-		li: { base: "leading-relaxed" },
-		blockquote: { base: "border-l-4 border-muted-foreground/30 pl-4 my-4 italic text-muted-foreground" },
-		link: { base: "text-primary underline underline-offset-2 hover:text-primary/80" },
-		codespan: { base: "bg-muted/80 px-1.5 py-0.5 rounded text-sm font-mono" },
-		code: {
-			base: "my-4 rounded-lg border border-border overflow-hidden",
-			container: "relative overflow-visible bg-muted/50 p-3 font-mono text-sm",
-			header: "flex items-center justify-between px-3 py-2 bg-muted/80 border-b border-border text-xs",
-			language: "font-mono text-muted-foreground",
-			buttons: "text-muted-foreground hover:text-foreground transition-colors",
-			pre: "overflow-x-auto text-sm",
-		},
-		hr: { base: "my-6 border-border" },
-	};
+function autoResize() {
+	if (textareaRef) {
+		textareaRef.style.height = "auto";
+		textareaRef.style.height = Math.min(textareaRef.scrollHeight, 192) + "px";
+	}
+}
+
+function scrollToBottom() {
+	messagesEndRef?.scrollIntoView({ behavior: "smooth" });
+}
+
+async function handleSubmit() {
+	if (!input.trim() || !isReady || !chat) return;
+
+	const text = input.trim();
+	const isFirstMessage = !hasSentFirstMessage;
+	input = "";
+	if (textareaRef) {
+		textareaRef.style.height = "auto";
+	}
+
+	await chat.sendMessage({ text });
+	scrollToBottom();
+
+	// If this was the first message, invalidate conversations to update sidebar
+	if (isFirstMessage) {
+		hasSentFirstMessage = true;
+		// Delay to allow the message to be saved to DB
+		setTimeout(() => invalidate("app:conversations"), 1500);
+	}
+}
+
+function handleKeydown(e: KeyboardEvent) {
+	if (e.key === "Enter" && !e.shiftKey) {
+		e.preventDefault();
+		handleSubmit();
+	}
+}
+
+$effect(() => {
+	// Auto-scroll when messages change
+	if (messages.length > 0) {
+		scrollToBottom();
+	}
+});
+
+// Custom theme for Streamdown to match our design
+const streamdownTheme = {
+	paragraph: { base: "mb-4 text-sm leading-[22px] [&:last-child]:mb-0" },
+	h1: { base: "text-xl font-bold mt-5 mb-2" },
+	h2: { base: "text-lg font-bold mt-4 mb-2" },
+	h3: { base: "text-base font-semibold mt-3 mb-2" },
+	h4: { base: "text-sm font-semibold mt-2 mb-1" },
+	ul: { base: "list-disc list-inside my-3 space-y-1 text-sm leading-[22px]" },
+	ol: {
+		base: "list-decimal list-inside my-3 space-y-1 text-sm leading-[22px]",
+	},
+	li: { base: "leading-[22px]" },
+	blockquote: {
+		base: "border-l-4 border-muted-foreground/30 pl-4 my-4 italic text-muted-foreground",
+	},
+	link: {
+		base: "text-primary underline underline-offset-2 hover:text-primary/80",
+	},
+	codespan: { base: "bg-muted/80 px-1.5 py-0.5 rounded text-sm font-mono" },
+	code: {
+		base: "my-4 rounded-lg border border-border overflow-hidden",
+		container: "relative bg-muted/50 font-mono text-sm",
+		header:
+			"flex items-center justify-between px-3 py-2 bg-muted/80 border-b border-border text-xs",
+		language: "font-mono text-muted-foreground",
+		buttons:
+			"flex items-center gap-2 text-muted-foreground [&>button]:p-1 [&>button]:rounded [&>button]:hover:bg-muted [&>button]:hover:text-foreground [&>button]:transition-colors [&_svg]:size-4",
+		pre: "p-3 overflow-x-auto text-sm [&>code]:block",
+		line: "block",
+	},
+	hr: { base: "my-6 border-border" },
+};
 </script>
 
 <svelte:head>
 	<title>chat | svelting</title>
 </svelte:head>
 
-<div class="flex flex-col h-screen bg-background">
-	<ChatNavbar />
-
+<div class="flex flex-col h-full bg-background">
 	<!-- Messages -->
 	<main class="flex-1 overflow-y-auto px-6 py-8">
-		<div class="max-w-3xl mx-auto space-y-6">
+		<div class="w-full md:w-[680px] mx-auto space-y-6">
 			{#if messages.length === 0}
 				<div class="text-center py-12">
 					<p class="text-muted-foreground">Start a conversation...</p>
@@ -134,24 +183,20 @@
 				{#each messages as message (message.id)}
 					<div class="flex {message.role === 'user' ? 'justify-end' : 'justify-start'}">
 						{#if message.role === "user"}
-							<!-- User messages: simple styled bubble -->
-							<div class="max-w-[80%] rounded-2xl px-4 py-3 bg-primary text-primary-foreground">
+							<!-- User messages: styled bubble -->
+							<div class="max-w-[80%] rounded-2xl px-4 py-3 bg-muted text-foreground text-sm">
 								<p class="whitespace-pre-wrap">{extractTextFromParts(message.parts)}</p>
 							</div>
 						{:else}
 							<!-- Assistant messages: rendered with Streamdown -->
-							<div class="max-w-[80%] rounded-2xl px-4 py-3 bg-muted text-foreground">
-								<Streamdown
-									content={extractTextFromParts(message.parts)}
-									theme={streamdownTheme}
-									components={{ code: Code }}
-									animation={{
-										enabled: isStreaming,
-										type: "fade",
-										duration: 300,
-										tokenize: "word",
-									}}
-								/>
+							<div class="w-full text-foreground">
+<Streamdown
+								content={extractTextFromParts(message.parts)}
+								theme={streamdownTheme}
+								{shikiThemes}
+								{shikiTheme}
+								components={{ code: Code }}
+							/>
 							</div>
 						{/if}
 					</div>
@@ -162,8 +207,8 @@
 	</main>
 
 	<!-- Input -->
-	<footer class="border-t border-border px-6 py-4 flex-shrink-0">
-		<div class="max-w-3xl mx-auto">
+	<footer class="px-6 py-4 shrink-0">
+		<div class="w-full md:w-[680px] mx-auto">
 			<div
 				role="button"
 				tabindex="-1"

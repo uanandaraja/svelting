@@ -1,47 +1,47 @@
 <script lang="ts">
-	interface Props {
-		open: boolean;
-		title?: string;
-		description?: string;
-		confirmText?: string;
-		cancelText?: string;
-		destructive?: boolean;
-		onConfirm: () => void;
-		onCancel: () => void;
-	}
+interface Props {
+	open: boolean;
+	title?: string;
+	description?: string;
+	confirmText?: string;
+	cancelText?: string;
+	destructive?: boolean;
+	onConfirm: () => void;
+	onCancel: () => void;
+}
 
-	let {
-		open = $bindable(false),
-		title = "Are you sure?",
-		description = "",
-		confirmText = "Confirm",
-		cancelText = "Cancel",
-		destructive = false,
-		onConfirm,
-		onCancel,
-	}: Props = $props();
+let {
+	open = $bindable(false),
+	title = "Are you sure?",
+	description = "",
+	confirmText = "Confirm",
+	cancelText = "Cancel",
+	destructive = false,
+	onConfirm,
+	onCancel,
+}: Props = $props();
 
-	function handleConfirm() {
-		onConfirm();
-		open = false;
-	}
+function handleConfirm() {
+	onConfirm();
+	open = false;
+}
 
-	function handleCancel() {
-		onCancel();
-		open = false;
-	}
+function handleCancel() {
+	onCancel();
+	open = false;
+}
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === "Escape") {
-			handleCancel();
-		}
+function handleKeydown(e: KeyboardEvent) {
+	if (e.key === "Escape") {
+		handleCancel();
 	}
+}
 
-	function handleBackdropClick(e: MouseEvent) {
-		if (e.target === e.currentTarget) {
-			handleCancel();
-		}
+function handleBackdropClick(e: MouseEvent) {
+	if (e.target === e.currentTarget) {
+		handleCancel();
 	}
+}
 </script>
 
 {#if open}

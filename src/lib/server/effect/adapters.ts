@@ -17,7 +17,9 @@ import type { AppError } from "./errors";
  */
 const mapErrorToKit = (err: AppError): never => {
 	return Match.value(err).pipe(
-		Match.tag("UnauthorizedError", (e) => error(401, e.message ?? "Unauthorized")),
+		Match.tag("UnauthorizedError", (e) =>
+			error(401, e.message ?? "Unauthorized"),
+		),
 		Match.tag("NotFoundError", (e) => error(404, `${e.resource} not found`)),
 		Match.tag("ValidationError", (e) => error(400, e.message)),
 		Match.tag("ForbiddenError", (e) => error(403, e.message ?? "Forbidden")),
@@ -35,7 +37,9 @@ const mapErrorToKit = (err: AppError): never => {
  * by converting them to SvelteKit errors.
  */
 // biome-ignore lint/suspicious/noExplicitAny: Effect types require flexibility here
-const runEffect = <A, E extends AppError>(effect: Effect.Effect<A, E, any>): Promise<A> => {
+const runEffect = <A, E extends AppError>(
+	effect: Effect.Effect<A, E, any>,
+): Promise<A> => {
 	const event = getRequestEvent();
 	const requestLayer = makeRequestContextLayer(event);
 	const fullLayer = Layer.merge(requestLayer, ServicesLive);
@@ -67,7 +71,9 @@ const runEffect = <A, E extends AppError>(effect: Effect.Effect<A, E, any>): Pro
  * ```
  */
 // biome-ignore lint/suspicious/noExplicitAny: Effect types require flexibility here
-export function effectQuery<A, E extends AppError>(effect: Effect.Effect<A, E, any>): () => Promise<A> {
+export function effectQuery<A, E extends AppError>(
+	effect: Effect.Effect<A, E, any>,
+): () => Promise<A> {
 	return query(async () => runEffect(effect));
 }
 
@@ -86,7 +92,11 @@ export function effectQuery<A, E extends AppError>(effect: Effect.Effect<A, E, a
  * ```
  */
 // biome-ignore lint/suspicious/noExplicitAny: Effect types require flexibility here
-export function effectQueryWithSchema<S extends v.BaseSchema<any, any, any>, A, E extends AppError>(
+export function effectQueryWithSchema<
+	S extends v.BaseSchema<any, any, any>,
+	A,
+	E extends AppError,
+>(
 	schema: S,
 	// biome-ignore lint/suspicious/noExplicitAny: Effect types require flexibility here
 	fn: (input: v.InferOutput<S>) => Effect.Effect<A, E, any>,
@@ -112,7 +122,9 @@ export function effectQueryWithSchema<S extends v.BaseSchema<any, any, any>, A, 
  * ```
  */
 // biome-ignore lint/suspicious/noExplicitAny: Effect types require flexibility here
-export function effectCommand<A, E extends AppError>(effect: Effect.Effect<A, E, any>): () => Promise<A> {
+export function effectCommand<A, E extends AppError>(
+	effect: Effect.Effect<A, E, any>,
+): () => Promise<A> {
 	return command(async () => runEffect(effect));
 }
 
@@ -131,7 +143,11 @@ export function effectCommand<A, E extends AppError>(effect: Effect.Effect<A, E,
  * ```
  */
 // biome-ignore lint/suspicious/noExplicitAny: Effect types require flexibility here
-export function effectCommandWithSchema<S extends v.BaseSchema<any, any, any>, A, E extends AppError>(
+export function effectCommandWithSchema<
+	S extends v.BaseSchema<any, any, any>,
+	A,
+	E extends AppError,
+>(
 	schema: S,
 	// biome-ignore lint/suspicious/noExplicitAny: Effect types require flexibility here
 	fn: (input: v.InferOutput<S>) => Effect.Effect<A, E, any>,

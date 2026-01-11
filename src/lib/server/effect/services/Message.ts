@@ -23,7 +23,11 @@ export interface MessageData {
 // ─────────────────────────────────────────────────────────────
 
 type MsgErrors = NotFoundError | DatabaseError | UnauthorizedError;
-type MsgContext = DatabaseService | AuthService | ConversationService | RequestContext;
+type MsgContext =
+	| DatabaseService
+	| AuthService
+	| ConversationService
+	| RequestContext;
 
 export interface MessageServiceShape {
 	/**

@@ -1,38 +1,40 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import PromptInput from "$lib/components/PromptInput.svelte";
-  import { createConversation } from "./chat/data.remote";
+import { goto, invalidate } from "$app/navigation";
+import PromptInput from "$lib/components/PromptInput.svelte";
+import { createConversation } from "./chat/data.remote";
 
-  let error = $state("");
-  let isLoading = $state(false);
+let error = $state("");
+let isLoading = $state(false);
 
-  async function handleSubmit(message: string) {
-    if (!message.trim()) return;
+async function handleSubmit(message: string) {
+	if (!message.trim()) return;
 
-    isLoading = true;
-    error = "";
+	isLoading = true;
+	error = "";
 
-    try {
-      // Store the message in sessionStorage for the chat page to pick up
-      sessionStorage.setItem("pendingMessage", message.trim());
+	try {
+		// Store the message in sessionStorage for the chat page to pick up
+		sessionStorage.setItem("pendingMessage", message.trim());
 
-      // Create conversation using remote function
-      const { id } = await createConversation();
-      goto(`/chat/${id}`);
-    } catch (e) {
-      // Clear storage on error
-      sessionStorage.removeItem("pendingMessage");
-      
-      // Check if it's an auth error (401)
-      if (e instanceof Error && e.message.includes("401")) {
-        goto("/auth");
-        return;
-      }
-      
-      error = e instanceof Error ? e.message : "Something went wrong";
-      isLoading = false;
-    }
-  }
+		// Create conversation using remote function
+		const { id } = await createConversation();
+		// Invalidate conversations so sidebar updates when we navigate
+		await invalidate("app:conversations");
+		goto(`/chat/${id}`);
+	} catch (e) {
+		// Clear storage on error
+		sessionStorage.removeItem("pendingMessage");
+
+		// Check if it's an auth error (401)
+		if (e instanceof Error && e.message.includes("401")) {
+			goto("/auth");
+			return;
+		}
+
+		error = e instanceof Error ? e.message : "Something went wrong";
+		isLoading = false;
+	}
+}
 </script>
 
 <svelte:head>

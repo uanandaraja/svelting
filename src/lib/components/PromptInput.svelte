@@ -1,54 +1,54 @@
 <script lang="ts">
-  import { ArrowUp } from "$lib/icons";
+import { ArrowUp } from "$lib/icons";
 
-  let {
-    placeholder = "Type your questions here...",
-    onsubmit,
-    disabled = false,
-  }: {
-    placeholder?: string;
-    onsubmit?: (value: string) => void | Promise<void>;
-    disabled?: boolean;
-  } = $props();
+let {
+	placeholder = "Type your questions here...",
+	onsubmit,
+	disabled = false,
+}: {
+	placeholder?: string;
+	onsubmit?: (value: string) => void | Promise<void>;
+	disabled?: boolean;
+} = $props();
 
-  let value = $state("");
-  let textareaRef: HTMLTextAreaElement;
-  let isSubmitting = $state(false);
+let value = $state("");
+let textareaRef: HTMLTextAreaElement;
+let isSubmitting = $state(false);
 
-  function focusTextarea() {
-    textareaRef?.focus();
-  }
+function focusTextarea() {
+	textareaRef?.focus();
+}
 
-  function autoResize() {
-    if (textareaRef) {
-      textareaRef.style.height = "auto";
-      textareaRef.style.height = Math.min(textareaRef.scrollHeight, 192) + "px";
-    }
-  }
+function autoResize() {
+	if (textareaRef) {
+		textareaRef.style.height = "auto";
+		textareaRef.style.height = Math.min(textareaRef.scrollHeight, 192) + "px";
+	}
+}
 
-  async function handleSubmit() {
-    if (!value.trim() || isSubmitting || disabled) return;
+async function handleSubmit() {
+	if (!value.trim() || isSubmitting || disabled) return;
 
-    const submitValue = value.trim();
-    isSubmitting = true;
+	const submitValue = value.trim();
+	isSubmitting = true;
 
-    try {
-      await onsubmit?.(submitValue);
-      value = "";
-      if (textareaRef) {
-        textareaRef.style.height = "auto";
-      }
-    } finally {
-      isSubmitting = false;
-    }
-  }
+	try {
+		await onsubmit?.(submitValue);
+		value = "";
+		if (textareaRef) {
+			textareaRef.style.height = "auto";
+		}
+	} finally {
+		isSubmitting = false;
+	}
+}
 
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  }
+function handleKeydown(e: KeyboardEvent) {
+	if (e.key === "Enter" && !e.shiftKey) {
+		e.preventDefault();
+		handleSubmit();
+	}
+}
 </script>
 
 <div

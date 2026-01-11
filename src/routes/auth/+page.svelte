@@ -3,18 +3,18 @@
 </svelte:head>
 
 <script lang="ts">
-	import { authClient } from "$lib/auth-client";
+import { authClient } from "$lib/auth-client";
 
-	let loading = $state(false);
+let loading = $state(false);
 
-	async function signInWithGoogle() {
-		loading = true;
-		await authClient.signIn.social({
-			provider: "google",
-			callbackURL: "/chat",
-		});
-		loading = false;
-	}
+async function signInWithGoogle() {
+	loading = true;
+	await authClient.signIn.social({
+		provider: "google",
+		callbackURL: "/chat",
+	});
+	loading = false;
+}
 </script>
 
 <div class="min-h-screen bg-background flex flex-col items-center justify-center p-8">

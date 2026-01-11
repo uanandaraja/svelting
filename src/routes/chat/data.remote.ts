@@ -84,11 +84,13 @@ export const getMessages = effectQueryWithSchema(v.string(), (id) =>
 /**
  * Get conversation with all messages (combined to avoid waterfall)
  */
-export const getConversationWithMessages = effectQueryWithSchema(v.string(), (id) =>
-	Effect.gen(function* () {
-		const service = yield* ConversationService;
-		return yield* service.getWithMessages(id);
-	}),
+export const getConversationWithMessages = effectQueryWithSchema(
+	v.string(),
+	(id) =>
+		Effect.gen(function* () {
+			const service = yield* ConversationService;
+			return yield* service.getWithMessages(id);
+		}),
 );
 
 // ─────────────────────────────────────────────────────────────
