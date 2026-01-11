@@ -110,7 +110,11 @@ async function handleSubmit(text: string) {
 	</main>
 
 	<!-- Input -->
-	<footer class="px-6 py-5 shrink-0">
+	<footer class="relative px-6 py-5 shrink-0">
+		<!-- Gradient fade overlay -->
+		<div
+			class="absolute inset-x-0 bottom-full h-12 pointer-events-none bg-gradient-to-b from-transparent to-background"
+		></div>
 		<div class="w-full md:w-[680px] mx-auto">
 			<PromptInput
 				bind:value={input}
