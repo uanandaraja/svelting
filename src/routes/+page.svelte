@@ -26,7 +26,8 @@ async function handleSubmit(message: string) {
 		sessionStorage.removeItem("pendingMessage");
 
 		// Check if it's an auth error (401)
-		if (e instanceof Error && e.message.includes("401")) {
+		// SvelteKit HttpError has a status property
+		if (e && typeof e === "object" && "status" in e && e.status === 401) {
 			goto("/auth");
 			return;
 		}

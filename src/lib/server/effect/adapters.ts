@@ -1,4 +1,4 @@
-import { Effect, Match, Layer } from "effect";
+import { Effect, Match, Layer, Cause, Runtime } from "effect";
 import { error } from "@sveltejs/kit";
 import { query, command, getRequestEvent } from "$app/server";
 import type * as v from "valibot";
@@ -11,19 +11,32 @@ import type { AppError } from "./errors";
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Maps Effect errors to SvelteKit errors.
- * This is called when an Effect fails, converting typed errors
- * to appropriate HTTP status codes.
+ * Maps Effect errors to HTTP status/message pairs.
+ * Returns plain objects instead of throwing, so the error can be
+ * thrown at the Promise boundary where SvelteKit's error() works correctly.
  */
-const mapErrorToKit = (err: AppError): never => {
+const mapErrorToKit = (err: AppError): { status: number; message: string } => {
 	return Match.value(err).pipe(
-		Match.tag("UnauthorizedError", (e) =>
-			error(401, e.message ?? "Unauthorized"),
-		),
-		Match.tag("NotFoundError", (e) => error(404, `${e.resource} not found`)),
-		Match.tag("ValidationError", (e) => error(400, e.message)),
-		Match.tag("ForbiddenError", (e) => error(403, e.message ?? "Forbidden")),
-		Match.tag("DatabaseError", () => error(500, "Internal server error")),
+		Match.tag("UnauthorizedError", (e) => ({
+			status: 401,
+			message: e.message ?? "Unauthorized",
+		})),
+		Match.tag("NotFoundError", (e) => ({
+			status: 404,
+			message: `${e.resource} not found`,
+		})),
+		Match.tag("ValidationError", (e) => ({
+			status: 400,
+			message: e.message,
+		})),
+		Match.tag("ForbiddenError", (e) => ({
+			status: 403,
+			message: e.message ?? "Forbidden",
+		})),
+		Match.tag("DatabaseError", () => ({
+			status: 500,
+			message: "Internal server error",
+		})),
 		Match.exhaustive,
 	);
 };
@@ -34,7 +47,7 @@ const mapErrorToKit = (err: AppError): never => {
 
 /**
  * Runs an Effect with all services provided, handling errors
- * by converting them to SvelteKit errors.
+ * by converting them to SvelteKit errors at the Promise boundary.
  */
 // biome-ignore lint/suspicious/noExplicitAny: Effect types require flexibility here
 const runEffect = <A, E extends AppError>(
@@ -44,13 +57,34 @@ const runEffect = <A, E extends AppError>(
 	const requestLayer = makeRequestContextLayer(event);
 	const fullLayer = Layer.merge(requestLayer, ServicesLive);
 
-	const program = effect.pipe(
-		Effect.provide(fullLayer),
-		Effect.catchAll((e) => Effect.sync(() => mapErrorToKit(e as AppError))),
-	);
+	const program = effect.pipe(Effect.provide(fullLayer));
 
-	// Cast is safe because we handle all errors above
-	return Effect.runPromise(program as Effect.Effect<A, never, never>);
+	// Catch at the Promise boundary where error() can throw correctly
+	// biome-ignore lint/suspicious/noExplicitAny: Layer provides all requirements
+	return Effect.runPromise(program as Effect.Effect<A, E, never>).catch((e) => {
+		// Effect wraps errors in FiberFailure - extract the actual error
+		let actualError = e;
+		if (Runtime.isFiberFailure(e)) {
+			const cause = e[Runtime.FiberFailureCauseId];
+			const failureOpt = Cause.failureOption(cause);
+			if (failureOpt._tag === "Some") {
+				actualError = failureOpt.value;
+			}
+		}
+
+		// Check if it's one of our typed errors by looking for _tag
+		if (
+			actualError &&
+			typeof actualError === "object" &&
+			"_tag" in actualError
+		) {
+			const { status, message } = mapErrorToKit(actualError as AppError);
+			throw error(status, message);
+		}
+		// Unknown error - log and return 500
+		console.error("Unexpected error in Effect:", e);
+		throw error(500, "Internal server error");
+	});
 };
 
 // ─────────────────────────────────────────────────────────────
