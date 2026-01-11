@@ -135,3 +135,24 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
 }
+
+/* Code block line numbers */
+[data-streamdown-code] pre code {
+  counter-reset: line;
+}
+
+[data-streamdown-code] pre code > span {
+  counter-increment: line;
+}
+
+[data-streamdown-code] pre code > span::before {
+  content: counter(line);
+  display: inline-block;
+  width: 2rem;
+  margin-right: 1rem;
+  text-align: right;
+  color: var(--muted-foreground);
+  opacity: 0.5;
+  user-select: none;
+  font-size: 0.875rem;
+}
