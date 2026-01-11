@@ -21,11 +21,11 @@ const content = $derived(extractTextFromParts(message.parts));
 const isUser = $derived(message.role === "user");
 </script>
 
-<div class="flex {isUser ? 'justify-end' : 'justify-start'}">
+<div class="flex {isUser ? 'justify-end' : 'justify-start'} animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
 	{#if isUser}
 		<!-- User messages: styled bubble -->
-		<div class="max-w-[80%] rounded-2xl px-4 py-3 bg-muted text-foreground text-sm">
-			<p class="whitespace-pre-wrap">{content}</p>
+		<div class="max-w-[80%] rounded-2xl px-4 py-3 bg-muted/80 text-foreground text-sm backdrop-blur-sm">
+			<p class="whitespace-pre-wrap leading-relaxed">{content}</p>
 		</div>
 	{:else}
 		<!-- Assistant messages: rendered with Streamdown -->

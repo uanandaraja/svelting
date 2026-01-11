@@ -11,9 +11,10 @@ interface Props {
 	conversations: Conversation[];
 	open: boolean;
 	onToggle: () => void;
+	loading?: boolean;
 }
 
-let { conversations, open, onToggle }: Props = $props();
+let { conversations, open, onToggle, loading = false }: Props = $props();
 
 // Get current conversation ID from URL
 const currentId = $derived(page.params.id);
@@ -70,20 +71,20 @@ function handleCancelDelete() {
 
 <!-- Sidebar -->
 <aside
-	class="h-screen bg-sidebar border-r border-sidebar-border flex flex-col shrink-0 transition-all duration-300 ease-in-out overflow-hidden"
+	class="h-screen bg-sidebar/80 backdrop-blur-sm border-r border-sidebar-border/50 flex flex-col shrink-0 transition-all duration-300 ease-out overflow-hidden"
 	class:w-64={open}
 	class:w-0={!open}
 >
 	<div class="flex flex-col h-full w-64">
 		<!-- Header -->
-		<header class="flex items-center justify-between px-4 py-4 border-b border-sidebar-border shrink-0">
-			<a href="/" class="text-lg font-semibold text-sidebar-foreground hover:text-sidebar-foreground/80 transition-colors">
+		<header class="flex items-center justify-between px-4 py-4 border-b border-sidebar-border/50 shrink-0">
+			<a href="/" class="text-lg font-semibold text-sidebar-foreground hover:text-sidebar-foreground/70 transition-colors">
 				svelting
 			</a>
 			<button
 				type="button"
 				onclick={onToggle}
-				class="p-1.5 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+				class="p-1.5 rounded-lg text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all"
 				aria-label="Close sidebar"
 			>
 				<svg xmlns="http://www.w3.org/2000/svg" class="size-5" viewBox="0 0 24 24">
@@ -99,7 +100,7 @@ function handleCancelDelete() {
 		<div class="px-3 py-3 shrink-0">
 			<a
 				href="/chat"
-				class="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium rounded-lg bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 transition-colors"
+				class="flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium rounded-xl bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all"
 			>
 				<svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -110,8 +111,12 @@ function handleCancelDelete() {
 
 		<!-- Conversations List -->
 		<nav class="flex-1 overflow-y-auto px-3 pb-3">
-			{#if conversations.length === 0}
-				<p class="text-sm text-sidebar-foreground/50 text-center py-4">no conversations yet</p>
+			{#if loading}
+				<div class="flex justify-center py-8">
+					<div class="animate-spin rounded-full h-5 w-5 border-2 border-sidebar-foreground/20 border-t-sidebar-foreground"></div>
+				</div>
+			{:else if conversations.length === 0}
+				<p class="text-sm text-sidebar-foreground/40 text-center py-8">no conversations yet</p>
 			{:else}
 				<ul class="space-y-1">
 					{#each conversations as conversation (conversation.id)}
@@ -120,20 +125,20 @@ function handleCancelDelete() {
 							<a
 								href="/chat/{conversation.id}"
 								data-sveltekit-preload-data="hover"
-								class="group flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm transition-colors {isActive
+								class="group flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm transition-all {isActive
 									? 'bg-sidebar-accent text-sidebar-accent-foreground'
-									: 'text-sidebar-foreground hover:bg-sidebar-accent/50'}"
+									: 'text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/40'}"
 							>
 								<div class="flex-1 min-w-0">
 									<p class="truncate">{truncate(conversation.firstMessage, 28)}</p>
-									<p class="text-xs text-sidebar-foreground/50 mt-0.5">
+									<p class="text-xs text-sidebar-foreground/40 mt-0.5">
 										{formatDate(conversation.updatedAt)}
 									</p>
 								</div>
 								<button
 									type="button"
 									onclick={(e) => handleDeleteClick(e, conversation.id, conversation.firstMessage)}
-									class="p-1 rounded opacity-0 group-hover:opacity-100 text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all shrink-0"
+									class="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-sidebar-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all shrink-0"
 									aria-label="Delete conversation"
 								>
 									<Trash class="size-3.5" />
@@ -146,9 +151,9 @@ function handleCancelDelete() {
 		</nav>
 
 		<!-- Footer with Theme Switcher -->
-		<footer class="px-3 py-3 border-t border-sidebar-border shrink-0">
+		<footer class="px-3 py-3 border-t border-sidebar-border/50 shrink-0">
 			<div class="flex items-center justify-between">
-				<span class="text-xs text-sidebar-foreground/50">Theme</span>
+				<span class="text-xs text-sidebar-foreground/40">Theme</span>
 				<ThemeSwitcher />
 			</div>
 		</footer>
@@ -159,7 +164,7 @@ function handleCancelDelete() {
 <button
 	type="button"
 	onclick={onToggle}
-	class="fixed top-4 left-4 z-50 p-2 rounded-lg bg-muted hover:bg-accent text-foreground transition-all duration-300"
+	class="fixed top-4 left-4 z-50 p-2.5 rounded-xl bg-muted/80 backdrop-blur-sm hover:bg-accent text-foreground/70 hover:text-foreground transition-all duration-300"
 	class:opacity-0={open}
 	class:pointer-events-none={open}
 	class:opacity-100={!open}

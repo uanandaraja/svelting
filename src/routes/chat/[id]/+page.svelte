@@ -94,11 +94,11 @@ async function handleSubmit(text: string) {
 
 <div class="flex flex-col h-full bg-background">
 	<!-- Messages -->
-	<main class="flex-1 overflow-y-auto px-6 py-8">
-		<div class="w-full md:w-[680px] mx-auto space-y-6">
+	<main class="flex-1 overflow-y-auto px-6 py-10">
+		<div class="w-full md:w-[680px] mx-auto space-y-8">
 			{#if messages.length === 0}
-				<div class="text-center py-12">
-					<p class="text-muted-foreground">Start a conversation...</p>
+				<div class="text-center py-16">
+					<p class="text-muted-foreground/60">Start a conversation...</p>
 				</div>
 			{:else}
 				{#each messages as message (message.id)}
@@ -110,7 +110,7 @@ async function handleSubmit(text: string) {
 	</main>
 
 	<!-- Input -->
-	<footer class="px-6 py-4 shrink-0">
+	<footer class="px-6 py-5 shrink-0">
 		<div class="w-full md:w-[680px] mx-auto">
 			<PromptInput
 				bind:value={input}

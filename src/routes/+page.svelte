@@ -25,8 +25,8 @@ async function handleSubmit(message: string) {
 
 		// Create conversation using remote function
 		const { id } = await createConversation();
-		// Invalidate conversations so sidebar updates when we navigate
-		await invalidate("app:conversations");
+		// Fire-and-forget: sidebar updates independently of navigation
+		invalidate("app:conversations");
 		goto(`/chat/${id}`);
 	} catch (e) {
 		// Clear storage on error
@@ -63,13 +63,13 @@ function handleAuthModalClose() {
   class="min-h-screen bg-background flex flex-col items-center justify-center p-8"
 >
   <div class="w-full max-w-2xl text-center">
-    <h1 class="text-5xl font-semibold text-foreground mb-6">svelting</h1>
-    <p class="text-lg text-muted-foreground mb-8">
+    <h1 class="text-5xl font-semibold text-foreground mb-4 tracking-tight">svelting</h1>
+    <p class="text-base text-muted-foreground/70 mb-10">
       real time, durable, chat app in svelte
     </p>
     <PromptInput onsubmit={handleSubmit} disabled={isLoading} />
     {#if error}
-      <p class="mt-4 text-sm text-destructive">{error}</p>
+      <p class="mt-4 text-sm text-destructive/90">{error}</p>
     {/if}
   </div>
 </div>

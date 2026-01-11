@@ -5,16 +5,21 @@ let { children, data } = $props();
 
 let sidebarOpen = $state(true);
 
-// Ensure conversations are reactive
-const conversations = $derived(data.conversations);
-
 function toggleSidebar() {
 	sidebarOpen = !sidebarOpen;
 }
 </script>
 
 <div class="flex h-screen bg-background overflow-hidden">
-	<ChatSidebar {conversations} open={sidebarOpen} onToggle={toggleSidebar} />
+	{#await data.conversations}
+		<!-- Loading state - show sidebar with empty conversations -->
+		<ChatSidebar conversations={[]} open={sidebarOpen} onToggle={toggleSidebar} loading={true} />
+	{:then conversations}
+		<ChatSidebar {conversations} open={sidebarOpen} onToggle={toggleSidebar} />
+	{:catch}
+		<!-- Error state - show empty sidebar -->
+		<ChatSidebar conversations={[]} open={sidebarOpen} onToggle={toggleSidebar} />
+	{/await}
 
 	<div class="flex-1 flex flex-col min-w-0 overflow-hidden">
 		{@render children()}

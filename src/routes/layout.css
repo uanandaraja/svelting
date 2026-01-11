@@ -130,9 +130,23 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* Hide scrollbars globally while preserving scroll functionality */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+  *::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+  /* Smooth transitions for interactive elements */
+  a, button {
+    @apply transition-all duration-200 ease-out;
+  }
+  /* Selection styling */
+  ::selection {
+    @apply bg-primary/20 text-foreground;
   }
 }
 

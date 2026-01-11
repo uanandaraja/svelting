@@ -65,7 +65,7 @@ function handleKeydown(e: KeyboardEvent) {
   tabindex="-1"
   onclick={focusTextarea}
   onkeydown={(e) => e.key === "Enter" && focusTextarea()}
-  class="relative w-full max-w-2xl rounded-xl bg-muted outline outline-1 outline-border antialiased cursor-text"
+  class="relative w-full max-w-2xl rounded-2xl bg-muted/50 outline outline-1 outline-border/50 antialiased cursor-text backdrop-blur-sm hover:outline-border focus-within:outline-border focus-within:outline-2 transition-all duration-200"
   class:opacity-50={isDisabled}
 >
   <textarea
@@ -76,7 +76,7 @@ function handleKeydown(e: KeyboardEvent) {
     {placeholder}
     rows={1}
     disabled={isDisabled}
-    class="w-full px-4.5 pt-4.5 pb-14 text-sm text-foreground bg-transparent resize-none outline-none placeholder:text-muted-foreground overflow-y-auto disabled:cursor-not-allowed"
+    class="w-full px-5 pt-5 pb-14 text-sm text-foreground bg-transparent resize-none outline-none placeholder:text-muted-foreground/70 overflow-y-auto disabled:cursor-not-allowed leading-relaxed"
     style="min-height: 104px; max-height: 192px;"
   ></textarea>
   <button
@@ -84,7 +84,7 @@ function handleKeydown(e: KeyboardEvent) {
     aria-label="Send message"
     onclick={handleSubmit}
     disabled={!value.trim() || isDisabled}
-    class="absolute bottom-1.5 right-1.5 flex justify-center items-center p-1.5 rounded-lg bg-primary hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+    class="absolute bottom-2 right-2 flex justify-center items-center p-2 rounded-xl bg-primary hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
   >
     {#if isLoading}
       <div

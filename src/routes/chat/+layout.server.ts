@@ -13,19 +13,18 @@ export const load: LayoutServerLoad = async ({ depends, url }) => {
 	}
 
 	// If we're processing a pending prompt, skip fetching conversations
-	// The page will redirect to /chat/[id] anyway, which will trigger a fresh load
 	const isPending = url.searchParams.get("pending") === "true";
 
 	if (isPending) {
 		return {
 			user: session.user,
-			conversations: [],
+			conversations: Promise.resolve([]),
 		};
 	}
 
-	const conversations = await getConversations();
+	// Return conversations as a promise - won't block page render (streaming)
 	return {
 		user: session.user,
-		conversations,
+		conversations: getConversations(),
 	};
 };
