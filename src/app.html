@@ -6,7 +6,8 @@
 		<script>
 			(function() {
 				const theme = localStorage.getItem('theme');
-				if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+				// Default to dark mode unless explicitly set to light
+				if (theme !== 'light') {
 					document.documentElement.classList.add('dark');
 				}
 			})();
