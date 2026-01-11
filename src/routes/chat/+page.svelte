@@ -7,8 +7,19 @@ import { goto, invalidate } from "$app/navigation";
 import PromptInput from "$lib/components/PromptInput.svelte";
 import { createConversation } from "./data.remote";
 
+const PENDING_PROMPT_KEY = "pendingAuthPrompt";
+
 let error = $state("");
 let isLoading = $state(false);
+
+// On mount, check if there's a pending prompt from auth flow
+$effect(() => {
+	const pendingPrompt = localStorage.getItem(PENDING_PROMPT_KEY);
+	if (pendingPrompt) {
+		localStorage.removeItem(PENDING_PROMPT_KEY);
+		handleSubmit(pendingPrompt);
+	}
+});
 
 async function handleSubmit(message: string) {
 	if (!message.trim()) return;
@@ -30,7 +41,7 @@ async function handleSubmit(message: string) {
 		sessionStorage.removeItem("pendingMessage");
 
 		// Check if it's an auth error (401)
-		if (e instanceof Error && e.message.includes("401")) {
+		if (e && typeof e === "object" && "status" in e && e.status === 401) {
 			goto("/auth");
 			return;
 		}

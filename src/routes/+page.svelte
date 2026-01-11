@@ -1,10 +1,17 @@
 <script lang="ts">
 import { goto, invalidate } from "$app/navigation";
+import { page } from "$app/state";
 import PromptInput from "$lib/components/PromptInput.svelte";
+import AuthModal from "$lib/components/AuthModal.svelte";
 import { createConversation } from "./chat/data.remote";
+
+const PENDING_PROMPT_KEY = "pendingAuthPrompt";
 
 let error = $state("");
 let isLoading = $state(false);
+
+// Show auth modal based on query param
+let showAuthModal = $derived(page.url.searchParams.get("auth") === "true");
 
 async function handleSubmit(message: string) {
 	if (!message.trim()) return;
@@ -28,13 +35,23 @@ async function handleSubmit(message: string) {
 		// Check if it's an auth error (401)
 		// SvelteKit HttpError has a status property
 		if (e && typeof e === "object" && "status" in e && e.status === 401) {
-			goto("/auth");
+			// Save prompt to localStorage for after auth (will be picked up in /chat)
+			localStorage.setItem(PENDING_PROMPT_KEY, message.trim());
+			// Show auth modal via query param
+			goto("/?auth=true", { replaceState: true });
+			isLoading = false;
 			return;
 		}
 
 		error = e instanceof Error ? e.message : "Something went wrong";
 		isLoading = false;
 	}
+}
+
+function handleAuthModalClose() {
+	// Remove the auth query param and clear pending prompt
+	localStorage.removeItem(PENDING_PROMPT_KEY);
+	goto("/", { replaceState: true });
 }
 </script>
 
@@ -56,3 +73,5 @@ async function handleSubmit(message: string) {
     {/if}
   </div>
 </div>
+
+<AuthModal bind:open={showAuthModal} onClose={handleAuthModalClose} />
