@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 @plugin '@tailwindcss/typography';
 
 /* Add svelte-streamdown styles to Tailwind build */
@@ -6,8 +6,8 @@
 
 /* Paper Mono Font */
 @font-face {
-  font-family: 'Paper Mono';
-  src: url('/fonts/PaperMono-Regular.woff2') format('woff2');
+  font-family: "Paper Mono";
+  src: url("/fonts/PaperMono-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -18,8 +18,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Paper Mono', monospace;
-  --font-mono: 'Paper Mono', monospace;
+  --font-sans: "Paper Mono", monospace;
+  --font-mono: "Paper Mono", monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -148,7 +148,7 @@
 [data-streamdown-code] pre code > span::before {
   content: counter(line);
   display: inline-block;
-  width: 2rem;
+  width: 1rem;
   margin-right: 1rem;
   text-align: right;
   color: var(--muted-foreground);

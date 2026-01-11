@@ -5,15 +5,24 @@ let {
 	placeholder = "Type your questions here...",
 	onsubmit,
 	disabled = false,
+	isStreaming = false,
+	value = $bindable(""),
 }: {
 	placeholder?: string;
 	onsubmit?: (value: string) => void | Promise<void>;
 	disabled?: boolean;
+	/** External streaming state - shows spinner when true */
+	isStreaming?: boolean;
+	/** Bindable input value for controlled mode */
+	value?: string;
 } = $props();
 
-let value = $state("");
 let textareaRef: HTMLTextAreaElement;
 let isSubmitting = $state(false);
+
+// Combined loading state: either internal submission or external streaming
+const isLoading = $derived(isSubmitting || isStreaming);
+const isDisabled = $derived(disabled || isLoading);
 
 function focusTextarea() {
 	textareaRef?.focus();
@@ -27,7 +36,7 @@ function autoResize() {
 }
 
 async function handleSubmit() {
-	if (!value.trim() || isSubmitting || disabled) return;
+	if (!value.trim() || isDisabled) return;
 
 	const submitValue = value.trim();
 	isSubmitting = true;
@@ -57,7 +66,7 @@ function handleKeydown(e: KeyboardEvent) {
   onclick={focusTextarea}
   onkeydown={(e) => e.key === "Enter" && focusTextarea()}
   class="relative w-full max-w-2xl rounded-xl bg-muted outline outline-1 outline-border antialiased cursor-text"
-  class:opacity-50={disabled}
+  class:opacity-50={isDisabled}
 >
   <textarea
     bind:this={textareaRef}
@@ -66,7 +75,7 @@ function handleKeydown(e: KeyboardEvent) {
     onkeydown={handleKeydown}
     {placeholder}
     rows={1}
-    disabled={disabled || isSubmitting}
+    disabled={isDisabled}
     class="w-full px-4.5 pt-4.5 pb-14 text-sm text-foreground bg-transparent resize-none outline-none placeholder:text-muted-foreground overflow-y-auto disabled:cursor-not-allowed"
     style="min-height: 104px; max-height: 192px;"
   ></textarea>
@@ -74,10 +83,10 @@ function handleKeydown(e: KeyboardEvent) {
     type="button"
     aria-label="Send message"
     onclick={handleSubmit}
-    disabled={!value.trim() || isSubmitting || disabled}
+    disabled={!value.trim() || isDisabled}
     class="absolute bottom-1.5 right-1.5 flex justify-center items-center p-1.5 rounded-lg bg-primary hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
   >
-    {#if isSubmitting}
+    {#if isLoading}
       <div
         class="size-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"
       ></div>
