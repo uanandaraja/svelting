@@ -12,10 +12,10 @@ let loading = $state(false);
 
 async function signInWithGoogle() {
 	loading = true;
-	// After auth, redirect to /chat where the pending prompt will be processed
+	// After auth, redirect to /chat?pending=true to signal pending prompt processing
 	await authClient.signIn.social({
 		provider: "google",
-		callbackURL: "/chat",
+		callbackURL: "/chat?pending=true",
 	});
 	loading = false;
 }
