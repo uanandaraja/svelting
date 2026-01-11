@@ -1,5 +1,3 @@
-import gruvboxLight from "@shikijs/themes/gruvbox-light-hard";
-import gruvboxDark from "@shikijs/themes/gruvbox-dark-hard";
 import everforestLight from "@shikijs/themes/everforest-light";
 import everforestDark from "@shikijs/themes/everforest-dark";
 
@@ -8,8 +6,6 @@ import everforestDark from "@shikijs/themes/everforest-dark";
  * Maps theme names to their configurations.
  */
 export const shikiThemes = {
-  "gruvbox-light-hard": gruvboxLight,
-  "gruvbox-dark-hard": gruvboxDark,
   "everforest-light": everforestLight,
   "everforest-dark": everforestDark,
 } as const;
