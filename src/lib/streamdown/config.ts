@@ -1,5 +1,7 @@
 import gruvboxLight from "@shikijs/themes/gruvbox-light-hard";
 import gruvboxDark from "@shikijs/themes/gruvbox-dark-hard";
+import everforestLight from "@shikijs/themes/everforest-light";
+import everforestDark from "@shikijs/themes/everforest-dark";
 
 /**
  * Shiki theme objects for code highlighting.
@@ -8,6 +10,8 @@ import gruvboxDark from "@shikijs/themes/gruvbox-dark-hard";
 export const shikiThemes = {
   "gruvbox-light-hard": gruvboxLight,
   "gruvbox-dark-hard": gruvboxDark,
+  "everforest-light": everforestLight,
+  "everforest-dark": everforestDark,
 } as const;
 
 export type ShikiThemeName = keyof typeof shikiThemes;
@@ -16,7 +20,7 @@ export type ShikiThemeName = keyof typeof shikiThemes;
  * Returns the appropriate shiki theme name based on dark mode.
  */
 export function getShikiTheme(isDark: boolean): ShikiThemeName {
-  return isDark ? "gruvbox-dark-hard" : "gruvbox-light-hard";
+  return isDark ? "everforest-dark" : "everforest-light";
 }
 
 /**
@@ -39,7 +43,7 @@ export const streamdownTheme = {
   link: {
     base: "text-primary underline underline-offset-2 hover:text-primary/80",
   },
-  codespan: { base: "bg-muted/80 px-1.5 py-0.5 rounded text-sm font-mono" },
+  codespan: { base: "bg-muted/50 px-1.5 py-0.5 rounded text-sm font-mono" },
   code: {
     base: "my-4 rounded-lg border border-border overflow-hidden",
     container: "relative bg-muted/80 font-mono text-sm",
