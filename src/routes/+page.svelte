@@ -1,6 +1,6 @@
 <script lang="ts">
 import { goto, invalidate } from "$app/navigation";
-import { page } from "$app/state";
+import { page } from "$app/stores";
 import PromptInput from "$lib/components/PromptInput.svelte";
 import AuthModal from "$lib/components/AuthModal.svelte";
 import { createConversation } from "./chat/data.remote";
@@ -11,7 +11,7 @@ let error = $state("");
 let isLoading = $state(false);
 
 // Show auth modal based on query param
-let showAuthModal = $derived(page.url.searchParams.get("auth") === "true");
+let showAuthModal = $derived($page.url.searchParams.get("auth") === "true");
 
 async function handleSubmit(message: string) {
 	if (!message.trim()) return;
