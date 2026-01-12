@@ -170,3 +170,8 @@
   user-select: none;
   font-size: 0.875rem;
 }
+
+/* Hide table download/copy buttons */
+[data-streamdown-table-download] {
+  display: none;
+}

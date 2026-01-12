@@ -24,12 +24,12 @@ export const MODELS: Model[] = [
     provider: "Anthropic",
   },
   {
-    id: "anthropic/claude-4.5-haiku",
+    id: "anthropic/claude-haiku-4.5",
     name: "Claude Haiku 4.5",
     provider: "Anthropic",
   },
   {
-    id: "anthropic/claude-4.5-sonnet",
+    id: "anthropic/claude-sonnet-4.5",
     name: "Claude Sonnet 4.5",
     provider: "Anthropic",
   },
