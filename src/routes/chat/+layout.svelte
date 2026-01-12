@@ -35,12 +35,12 @@ function toggleSidebar() {
 >
 	{#await data.conversations}
 		<!-- Loading state - show sidebar with empty conversations -->
-		<ChatSidebar conversations={[]} open={sidebarOpen} onToggle={toggleSidebar} loading={true} />
+		<ChatSidebar conversations={[]} open={sidebarOpen} onToggle={toggleSidebar} loading={true} user={data.user} />
 	{:then conversations}
-		<ChatSidebar {conversations} open={sidebarOpen} onToggle={toggleSidebar} />
+		<ChatSidebar {conversations} open={sidebarOpen} onToggle={toggleSidebar} user={data.user} />
 	{:catch}
 		<!-- Error state - show empty sidebar -->
-		<ChatSidebar conversations={[]} open={sidebarOpen} onToggle={toggleSidebar} />
+		<ChatSidebar conversations={[]} open={sidebarOpen} onToggle={toggleSidebar} user={data.user} />
 	{/await}
 
 	<div class="flex-1 flex flex-col min-w-0 overflow-hidden">

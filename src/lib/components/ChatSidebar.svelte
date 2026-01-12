@@ -4,6 +4,7 @@ import { invalidate } from "$app/navigation";
 import { Trash } from "$lib/icons";
 import ConfirmDialog from "./ConfirmDialog.svelte";
 import ThemeSwitcher from "./ThemeSwitcher.svelte";
+import UserProfile from "./UserProfile.svelte";
 import type { Conversation } from "$lib/ai";
 import { deleteConversation } from "../../routes/chat/data.remote";
 
@@ -12,9 +13,14 @@ interface Props {
 	open: boolean;
 	onToggle: () => void;
 	loading?: boolean;
+	user?: {
+		name: string;
+		email: string;
+		image?: string | null;
+	};
 }
 
-let { conversations, open, onToggle, loading = false }: Props = $props();
+let { conversations, open, onToggle, loading = false, user }: Props = $props();
 
 // Get current conversation ID from URL
 const currentId = $derived(page.params.id);
@@ -150,12 +156,15 @@ function handleCancelDelete() {
 			{/if}
 		</nav>
 
-		<!-- Footer with Theme Switcher -->
-		<footer class="px-3 py-3 border-t border-sidebar-border/50 shrink-0">
+		<!-- Footer with Theme Switcher and User Profile -->
+		<footer class="px-3 py-3 border-t border-sidebar-border/50 shrink-0 space-y-2">
 			<div class="flex items-center justify-between">
 				<span class="text-xs text-sidebar-foreground/40">Theme</span>
 				<ThemeSwitcher />
 			</div>
+			{#if user}
+				<UserProfile {user} />
+			{/if}
 		</footer>
 	</div>
 </aside>
