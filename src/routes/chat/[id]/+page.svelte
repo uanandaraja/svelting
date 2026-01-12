@@ -1,4 +1,5 @@
 <script lang="ts">
+import { browser } from "$app/environment";
 import { Chat, type UIMessage } from "@ai-sdk/svelte";
 import { DefaultChatTransport } from "ai";
 import { invalidate } from "$app/navigation";
@@ -30,6 +31,8 @@ const messages = $derived(chat?.messages ?? []);
 
 // Initialize/reinitialize chat when conversation changes
 $effect(() => {
+	if (!browser) return;
+
 	const { conversation, messages: dbMessages } = data;
 
 	if (currentConversationId !== conversation.id) {
