@@ -5,9 +5,11 @@
 <script lang="ts">
 import { goto } from "$app/navigation";
 import PromptInput from "$lib/components/PromptInput.svelte";
+import { DEFAULT_MODEL } from "$lib/ai";
 import { createConversation } from "./data.remote";
 
 const PENDING_PROMPT_KEY = "pendingAuthPrompt";
+const PREFERRED_MODEL_KEY = "preferredModel";
 
 interface Props {
 	data: {
@@ -19,6 +21,15 @@ let { data }: Props = $props();
 
 let error = $state("");
 let isLoading = $state(false);
+let selectedModel = $state(DEFAULT_MODEL);
+
+// Load preferred model from localStorage on mount
+$effect(() => {
+	const stored = localStorage.getItem(PREFERRED_MODEL_KEY);
+	if (stored) {
+		selectedModel = stored;
+	}
+});
 
 // Use server-provided state for initial render (avoids hydration flash)
 let showLoading = $derived(data.hasPendingPrompt || isLoading);
@@ -39,8 +50,9 @@ $effect(() => {
 
 async function processPendingPrompt(message: string) {
 	try {
-		// Store the message in sessionStorage for the chat page to pick up
+		// Store the message and model in sessionStorage for the chat page to pick up
 		sessionStorage.setItem("pendingMessage", message.trim());
+		sessionStorage.setItem("pendingModel", selectedModel);
 
 		// Create conversation using remote function
 		const { id } = await createConversation();
@@ -49,6 +61,7 @@ async function processPendingPrompt(message: string) {
 	} catch (e) {
 		// Clear storage on error
 		sessionStorage.removeItem("pendingMessage");
+		sessionStorage.removeItem("pendingModel");
 		error = e instanceof Error ? e.message : "Something went wrong";
 		// Clear the pending query param
 		goto("/chat", { replaceState: true });
@@ -62,8 +75,9 @@ async function handleSubmit(message: string) {
 	error = "";
 
 	try {
-		// Store the message in sessionStorage for the chat page to pick up
+		// Store the message and model in sessionStorage for the chat page to pick up
 		sessionStorage.setItem("pendingMessage", message.trim());
+		sessionStorage.setItem("pendingModel", selectedModel);
 
 		// Create conversation using remote function
 		const { id } = await createConversation();
@@ -71,6 +85,7 @@ async function handleSubmit(message: string) {
 	} catch (e) {
 		// Clear storage on error
 		sessionStorage.removeItem("pendingMessage");
+		sessionStorage.removeItem("pendingModel");
 
 		// Check if it's an auth error (401)
 		if (e && typeof e === "object" && "status" in e && e.status === 401) {
@@ -81,6 +96,11 @@ async function handleSubmit(message: string) {
 		error = e instanceof Error ? e.message : "Something went wrong";
 		isLoading = false;
 	}
+}
+
+function handleModelChange(modelId: string) {
+	selectedModel = modelId;
+	localStorage.setItem(PREFERRED_MODEL_KEY, modelId);
 }
 </script>
 
@@ -98,7 +118,12 @@ async function handleSubmit(message: string) {
 			<p class="text-lg text-muted-foreground mb-8">
 				real time, durable, chat app in svelte
 			</p>
-			<PromptInput onsubmit={handleSubmit} disabled={isLoading} />
+			<PromptInput
+				onsubmit={handleSubmit}
+				disabled={isLoading}
+				model={selectedModel}
+				onModelChange={handleModelChange}
+			/>
 			{#if error}
 				<p class="mt-4 text-sm text-destructive">{error}</p>
 			{/if}

@@ -74,6 +74,29 @@ export interface ConversationServiceShape {
 	readonly delete: (
 		id: string,
 	) => Effect.Effect<void, ConvoErrors, ConvoContext>;
+
+	/**
+	 * Update the model for a conversation
+	 */
+	readonly updateModel: (
+		id: string,
+		model: string,
+	) => Effect.Effect<void, ConvoErrors, ConvoContext>;
+
+	/**
+	 * Update the active stream ID for resumable streaming
+	 */
+	readonly setActiveStreamId: (
+		id: string,
+		streamId: string | null,
+	) => Effect.Effect<void, ConvoErrors, ConvoContext>;
+
+	/**
+	 * Get the active stream ID for a conversation (returns null if not streaming)
+	 */
+	readonly getActiveStreamId: (
+		id: string,
+	) => Effect.Effect<string | null, ConvoErrors, ConvoContext>;
 }
 
 export class ConversationService extends Context.Tag("ConversationService")<
@@ -228,6 +251,34 @@ export const ConversationLive = Layer.succeed(
 					db.delete(conversation).where(eq(conversation.id, id)),
 				);
 			}),
+
+		setActiveStreamId: (id: string, streamId: string | null) =>
+			Effect.gen(function* () {
+				yield* verifyOwnership(id);
+				yield* runQuery((db) =>
+					db
+						.update(conversation)
+						.set({ activeStreamId: streamId })
+						.where(eq(conversation.id, id)),
+				);
+			}),
+
+		updateModel: (id: string, model: string) =>
+			Effect.gen(function* () {
+				yield* verifyOwnership(id);
+				yield* runQuery((db) =>
+					db
+						.update(conversation)
+						.set({ model, updatedAt: new Date() })
+						.where(eq(conversation.id, id)),
+				);
+			}),
+
+		getActiveStreamId: (id: string) =>
+			Effect.gen(function* () {
+				const conv = yield* verifyOwnership(id);
+				return conv.activeStreamId;
+			}),
 	}),
 );
 
@@ -267,4 +318,10 @@ export const deleteConversation = (id: string) =>
 	Effect.gen(function* () {
 		const service = yield* ConversationService;
 		return yield* service.delete(id);
+	});
+
+export const updateConversationModel = (id: string, model: string) =>
+	Effect.gen(function* () {
+		const service = yield* ConversationService;
+		return yield* service.updateModel(id, model);
 	});

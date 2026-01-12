@@ -6,6 +6,7 @@ import { useDarkMode } from "$lib/hooks/useDarkMode.svelte";
 import { getShikiTheme } from "$lib/streamdown/config";
 import ChatMessage from "$lib/components/ChatMessage.svelte";
 import PromptInput from "$lib/components/PromptInput.svelte";
+import { DEFAULT_MODEL } from "$lib/ai";
 
 // Receive data from +page.server.ts load function
 let { data } = $props();
@@ -20,6 +21,7 @@ let input = $state("");
 let messagesEndRef = $state<HTMLDivElement | null>(null);
 let currentConversationId = $state<string | null>(null);
 let hasSentFirstMessage = $state(false);
+let currentModel = $state(DEFAULT_MODEL);
 
 // Derived state
 const isStreaming = $derived(chat?.status === "streaming");
@@ -33,6 +35,7 @@ $effect(() => {
 	if (currentConversationId !== conversation.id) {
 		currentConversationId = conversation.id;
 		hasSentFirstMessage = dbMessages.length > 0;
+		currentModel = conversation.model;
 
 		// Convert DB messages to UI messages format
 		const uiMessages: UIMessage[] = dbMessages.map((msg) => ({
@@ -47,11 +50,36 @@ $effect(() => {
 			messages: uiMessages,
 			transport: new DefaultChatTransport({
 				api: `/chat/${conversation.id}/api/messages`,
+				// Configure the reconnect endpoint for durable streaming
+				prepareReconnectToStreamRequest: ({ id }) => ({
+					api: `/chat/${id}/api/stream`,
+				}),
 			}),
+		});
+
+		// Attempt to resume any active stream on mount
+		chat.resumeStream().catch(() => {
+			// No active stream to resume - this is expected for completed conversations
 		});
 
 		// Check for pending message from homepage and send it
 		const pendingMessage = sessionStorage.getItem("pendingMessage");
+		const pendingModel = sessionStorage.getItem("pendingModel");
+
+		// Apply pending model if present
+		if (pendingModel) {
+			sessionStorage.removeItem("pendingModel");
+			currentModel = pendingModel;
+			// Update the conversation model on the server
+			fetch(`/chat/${conversation.id}/api/model`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ model: pendingModel }),
+			}).catch(() => {
+				// Silently fail - model will just use default
+			});
+		}
+
 		if (pendingMessage) {
 			sessionStorage.removeItem("pendingMessage");
 			chat.sendMessage({ text: pendingMessage });
@@ -84,6 +112,35 @@ async function handleSubmit(text: string) {
 	if (isFirstMessage) {
 		hasSentFirstMessage = true;
 		setTimeout(() => invalidate("app:conversations"), 1500);
+	}
+}
+
+async function handleModelChange(modelId: string) {
+	if (!currentConversationId || modelId === currentModel) return;
+
+	// Optimistically update the UI
+	currentModel = modelId;
+
+	// Persist to server
+	try {
+		const response = await fetch(`/chat/${currentConversationId}/api/model`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ model: modelId }),
+		});
+
+		if (!response.ok) {
+			// Revert on error
+			currentModel = data.conversation.model;
+			console.error("Failed to update model");
+		} else {
+			// Store as default for new conversations
+			localStorage.setItem("preferredModel", modelId);
+		}
+	} catch {
+		// Revert on error
+		currentModel = data.conversation.model;
+		console.error("Failed to update model");
 	}
 }
 </script>
@@ -121,6 +178,8 @@ async function handleSubmit(text: string) {
 				placeholder="Type your message..."
 				{isStreaming}
 				onsubmit={handleSubmit}
+				model={currentModel}
+				onModelChange={handleModelChange}
 			/>
 		</div>
 	</footer>

@@ -1,5 +1,6 @@
 <script lang="ts">
 import { ArrowUp } from "$lib/icons";
+import ModelSelect from "./ModelSelect.svelte";
 
 let {
 	placeholder = "Type your questions here...",
@@ -7,6 +8,8 @@ let {
 	disabled = false,
 	isStreaming = false,
 	value = $bindable(""),
+	model = "",
+	onModelChange,
 }: {
 	placeholder?: string;
 	onsubmit?: (value: string) => void | Promise<void>;
@@ -15,6 +18,10 @@ let {
 	isStreaming?: boolean;
 	/** Bindable input value for controlled mode */
 	value?: string;
+	/** Current model ID */
+	model?: string;
+	/** Callback when model is changed */
+	onModelChange?: (modelId: string) => void;
 } = $props();
 
 let textareaRef: HTMLTextAreaElement;
@@ -79,6 +86,17 @@ function handleKeydown(e: KeyboardEvent) {
     class="w-full px-5 pt-5 pb-14 text-sm text-foreground bg-transparent resize-none outline-none placeholder:text-muted-foreground/70 overflow-y-auto disabled:cursor-not-allowed leading-relaxed"
     style="min-height: 104px; max-height: 192px;"
   ></textarea>
+  <!-- Bottom toolbar -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    class="absolute bottom-2 left-2 right-14 flex items-center"
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.stopPropagation()}
+  >
+    {#if model}
+      <ModelSelect value={model} onchange={onModelChange} disabled={isDisabled} />
+    {/if}
+  </div>
   <button
     type="button"
     aria-label="Send message"

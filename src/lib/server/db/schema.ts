@@ -60,6 +60,8 @@ export const conversation = pgTable(
 			.references(() => user.id, { onDelete: "cascade" }),
 		systemPrompt: text("system_prompt").notNull(),
 		model: text("model").notNull(),
+		// Tracks active streaming response for resumability (null when not streaming)
+		activeStreamId: text("active_stream_id"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},

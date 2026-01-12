@@ -3,10 +3,11 @@ import type { RequestHandler } from "./$types";
 import { db } from "$lib/server/db";
 import { conversation, message } from "$lib/server/db/schema";
 import { eq, asc } from "drizzle-orm";
-import { streamText } from "ai";
+import { streamText, generateId } from "ai";
 import { openrouter, extractTextFromParts } from "$lib/server/ai";
 import type { UIMessage } from "$lib/ai";
 import { getSession, getConversationRaw } from "../../../data.remote";
+import { getStreamContext } from "$lib/server/redis/stream-context";
 
 export const POST: RequestHandler = async ({ request, params }) => {
 	await getSession();
@@ -38,6 +39,7 @@ export const POST: RequestHandler = async ({ request, params }) => {
 
 	const existingIds = new Set(existingMessages.map((m) => m.id));
 
+	// Save user message if not already saved
 	if (!existingIds.has(lastMessage.id)) {
 		await db.insert(message).values({
 			id: lastMessage.id,
@@ -46,6 +48,12 @@ export const POST: RequestHandler = async ({ request, params }) => {
 			content: userContent.trim(),
 		});
 	}
+
+	// Clear any previous active stream
+	await db
+		.update(conversation)
+		.set({ activeStreamId: null })
+		.where(eq(conversation.id, id));
 
 	const aiMessages = uiMessages
 		.filter((msg) => msg.role === "user" || msg.role === "assistant")
@@ -59,6 +67,7 @@ export const POST: RequestHandler = async ({ request, params }) => {
 		system: conv.systemPrompt,
 		messages: aiMessages,
 		onFinish: async ({ text }) => {
+			// Save assistant message
 			await db.insert(message).values({
 				id: crypto.randomUUID(),
 				conversationId: id,
@@ -66,12 +75,30 @@ export const POST: RequestHandler = async ({ request, params }) => {
 				content: text,
 			});
 
+			// Update conversation timestamp and clear active stream
 			await db
 				.update(conversation)
-				.set({ updatedAt: new Date() })
+				.set({ updatedAt: new Date(), activeStreamId: null })
 				.where(eq(conversation.id, id));
 		},
 	});
 
-	return result.toUIMessageStreamResponse();
+	return result.toUIMessageStreamResponse({
+		originalMessages: uiMessages,
+		generateMessageId: generateId,
+		// Consume the SSE stream and persist to Redis for resumability
+		async consumeSseStream({ stream }) {
+			const streamId = generateId();
+			const streamContext = getStreamContext();
+
+			// Create a resumable stream that persists to Redis
+			await streamContext.createNewResumableStream(streamId, () => stream);
+
+			// Track the active stream in the database
+			await db
+				.update(conversation)
+				.set({ activeStreamId: streamId })
+				.where(eq(conversation.id, id));
+		},
+	});
 };

@@ -116,3 +116,18 @@ export const deleteConversation = effectCommandWithSchema(v.string(), (id) =>
 		return yield* service.delete(id);
 	}),
 ) as (id: string) => Promise<void>;
+
+/**
+ * Update the model for a conversation
+ */
+export const updateConversationModel = effectCommandWithSchema(
+	v.object({
+		id: v.string(),
+		model: v.string(),
+	}),
+	({ id, model }) =>
+		Effect.gen(function* () {
+			const service = yield* ConversationService;
+			return yield* service.updateModel(id, model);
+		}),
+) as (params: { id: string; model: string }) => Promise<void>;

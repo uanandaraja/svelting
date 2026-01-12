@@ -45,7 +45,10 @@
 		"ai": "^6.0.23",
 		"better-auth": "^1.4.10",
 		"effect": "^3.19.14",
+		"ioredis": "^5.9.1",
 		"postgres": "^3.4.7",
+		"redis": "^5.10.0",
+		"resumable-stream": "^2.2.10",
 		"svelte-streamdown": "^3.0.1",
 		"valibot": "^1.2.0",
 		"zod": "^4.3.5"
