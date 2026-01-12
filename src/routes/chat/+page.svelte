@@ -50,18 +50,16 @@ $effect(() => {
 
 async function processPendingPrompt(message: string) {
 	try {
-		// Store the message and model in sessionStorage for the chat page to pick up
+		// Store the message in sessionStorage for the chat page to pick up
 		sessionStorage.setItem("pendingMessage", message.trim());
-		sessionStorage.setItem("pendingModel", selectedModel);
 
-		// Create conversation using remote function
-		const { id } = await createConversation();
+		// Create conversation with the selected model
+		const { id } = await createConversation(selectedModel);
 		// Navigate directly - the layout will refresh conversations on navigation
 		goto(`/chat/${id}`, { replaceState: true });
 	} catch (e) {
 		// Clear storage on error
 		sessionStorage.removeItem("pendingMessage");
-		sessionStorage.removeItem("pendingModel");
 		error = e instanceof Error ? e.message : "Something went wrong";
 		// Clear the pending query param
 		goto("/chat", { replaceState: true });
@@ -75,17 +73,15 @@ async function handleSubmit(message: string) {
 	error = "";
 
 	try {
-		// Store the message and model in sessionStorage for the chat page to pick up
+		// Store the message in sessionStorage for the chat page to pick up
 		sessionStorage.setItem("pendingMessage", message.trim());
-		sessionStorage.setItem("pendingModel", selectedModel);
 
-		// Create conversation using remote function
-		const { id } = await createConversation();
+		// Create conversation with the selected model
+		const { id } = await createConversation(selectedModel);
 		goto(`/chat/${id}`);
 	} catch (e) {
 		// Clear storage on error
 		sessionStorage.removeItem("pendingMessage");
-		sessionStorage.removeItem("pendingModel");
 
 		// Check if it's an auth error (401)
 		if (e && typeof e === "object" && "status" in e && e.status === 401) {

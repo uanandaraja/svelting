@@ -64,22 +64,6 @@ $effect(() => {
 
 		// Check for pending message from homepage and send it
 		const pendingMessage = sessionStorage.getItem("pendingMessage");
-		const pendingModel = sessionStorage.getItem("pendingModel");
-
-		// Apply pending model if present
-		if (pendingModel) {
-			sessionStorage.removeItem("pendingModel");
-			currentModel = pendingModel;
-			// Update the conversation model on the server
-			fetch(`/chat/${conversation.id}/api/model`, {
-				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ model: pendingModel }),
-			}).catch(() => {
-				// Silently fail - model will just use default
-			});
-		}
-
 		if (pendingMessage) {
 			sessionStorage.removeItem("pendingMessage");
 			chat.sendMessage({ text: pendingMessage });

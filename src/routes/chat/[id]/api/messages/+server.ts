@@ -2,17 +2,29 @@ import { error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { db } from "$lib/server/db";
 import { conversation, message } from "$lib/server/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and } from "drizzle-orm";
 import { streamText, generateId } from "ai";
 import { openrouter, extractTextFromParts } from "$lib/server/ai";
 import type { UIMessage } from "$lib/ai";
-import { getSession, getConversationRaw } from "../../../data.remote";
+import { getSession } from "../../../data.remote";
 import { getStreamContext } from "$lib/server/redis/stream-context";
 
 export const POST: RequestHandler = async ({ request, params }) => {
-	await getSession();
-	const conv = await getConversationRaw(params.id);
+	const session = await getSession();
 	const { id } = params;
+
+	// Fetch conversation directly from DB to get fresh model value (no caching)
+	const [conv] = await db
+		.select()
+		.from(conversation)
+		.where(
+			and(eq(conversation.id, id), eq(conversation.userId, session.user.id)),
+		)
+		.limit(1);
+
+	if (!conv) {
+		error(404, "Conversation not found");
+	}
 
 	const body = await request.json();
 	const { messages: uiMessages } = body as { messages: UIMessage[] };

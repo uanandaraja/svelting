@@ -66,7 +66,9 @@ export interface ConversationServiceShape {
 	/**
 	 * Create a new conversation
 	 */
-	readonly create: Effect.Effect<{ id: string }, ConvoErrors, ConvoContext>;
+	readonly create: (
+		model?: string,
+	) => Effect.Effect<{ id: string }, ConvoErrors, ConvoContext>;
 
 	/**
 	 * Delete a conversation (messages cascade automatically)
@@ -227,22 +229,23 @@ export const ConversationLive = Layer.succeed(
 				};
 			}),
 
-		create: Effect.gen(function* () {
-			const authService = yield* AuthService;
-			const session = yield* authService.getSession;
-			const conversationId = crypto.randomUUID();
+		create: (model?: string) =>
+			Effect.gen(function* () {
+				const authService = yield* AuthService;
+				const session = yield* authService.getSession;
+				const conversationId = crypto.randomUUID();
 
-			yield* runQuery((db) =>
-				db.insert(conversation).values({
-					id: conversationId,
-					userId: session.user.id,
-					systemPrompt: SYSTEM_PROMPT,
-					model: DEFAULT_MODEL,
-				}),
-			);
+				yield* runQuery((db) =>
+					db.insert(conversation).values({
+						id: conversationId,
+						userId: session.user.id,
+						systemPrompt: SYSTEM_PROMPT,
+						model: model ?? DEFAULT_MODEL,
+					}),
+				);
 
-			return { id: conversationId };
-		}),
+				return { id: conversationId };
+			}),
 
 		delete: (id: string) =>
 			Effect.gen(function* () {
@@ -309,10 +312,11 @@ export const getConversationWithMessages = (id: string) =>
 		return yield* service.getWithMessages(id);
 	});
 
-export const createConversation = Effect.gen(function* () {
-	const service = yield* ConversationService;
-	return yield* service.create;
-});
+export const createConversation = (model?: string) =>
+	Effect.gen(function* () {
+		const service = yield* ConversationService;
+		return yield* service.create(model);
+	});
 
 export const deleteConversation = (id: string) =>
 	Effect.gen(function* () {

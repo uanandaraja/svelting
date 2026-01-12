@@ -100,12 +100,14 @@ export const getConversationWithMessages = effectQueryWithSchema(
 /**
  * Create a new conversation
  */
-export const createConversation = effectCommand(
-	Effect.gen(function* () {
-		const service = yield* ConversationService;
-		return yield* service.create;
-	}),
-) as () => Promise<{ id: string }>;
+export const createConversation = effectCommandWithSchema(
+	v.optional(v.string()),
+	(model) =>
+		Effect.gen(function* () {
+			const service = yield* ConversationService;
+			return yield* service.create(model);
+		}),
+) as (model?: string) => Promise<{ id: string }>;
 
 /**
  * Delete a conversation (messages cascade automatically)
