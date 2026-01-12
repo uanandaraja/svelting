@@ -8,6 +8,7 @@ import { getShikiTheme } from "$lib/streamdown/config";
 import ChatMessage from "$lib/components/ChatMessage.svelte";
 import PromptInput from "$lib/components/PromptInput.svelte";
 import { DEFAULT_MODEL } from "$lib/ai";
+import { ArrowDown } from "$lib/icons";
 
 // Receive data from +page.server.ts load function
 let { data } = $props();
@@ -20,9 +21,11 @@ const shikiTheme = $derived(getShikiTheme(isDark));
 let chat = $state<Chat | null>(null);
 let input = $state("");
 let messagesEndRef = $state<HTMLDivElement | null>(null);
+let mainRef = $state<HTMLElement | null>(null);
 let currentConversationId = $state<string | null>(null);
 let hasSentFirstMessage = $state(false);
 let currentModel = $state(DEFAULT_MODEL);
+let showScrollButton = $state(false);
 
 // Derived state
 const isStreaming = $derived(chat?.status === "streaming");
@@ -88,6 +91,13 @@ function scrollToBottom() {
 	messagesEndRef?.scrollIntoView({ behavior: "smooth" });
 }
 
+function handleScroll(event: Event) {
+	const target = event.target as HTMLElement;
+	const distanceFromBottom =
+		target.scrollHeight - target.scrollTop - target.clientHeight;
+	showScrollButton = distanceFromBottom > 100;
+}
+
 async function handleSubmit(text: string) {
 	if (!isReady || !chat) return;
 
@@ -138,7 +148,7 @@ async function handleModelChange(modelId: string) {
 
 <div class="flex flex-col h-full bg-background">
 	<!-- Messages -->
-	<main class="flex-1 overflow-y-auto px-6 py-10">
+	<main bind:this={mainRef} onscroll={handleScroll} class="flex-1 overflow-y-auto px-6 py-10">
 		<div class="w-full md:w-[680px] mx-auto space-y-8">
 			{#if messages.length === 0}
 				<div class="text-center py-16">
@@ -159,7 +169,17 @@ async function handleModelChange(modelId: string) {
 		<div
 			class="absolute inset-x-0 bottom-full h-12 pointer-events-none bg-gradient-to-b from-transparent to-background"
 		></div>
-		<div class="w-full md:w-[680px] mx-auto">
+		<div class="w-full md:w-[680px] mx-auto relative">
+			<!-- Scroll to bottom button -->
+			{#if showScrollButton}
+				<button
+					onclick={scrollToBottom}
+					class="absolute -top-12 left-1/2 -translate-x-1/2 p-2 rounded-full bg-muted border border-border hover:bg-accent transition-colors shadow-md"
+					aria-label="Scroll to bottom"
+				>
+					<ArrowDown class="w-4 h-4 text-muted-foreground" />
+				</button>
+			{/if}
 			<PromptInput
 				bind:value={input}
 				placeholder="Type your message..."
