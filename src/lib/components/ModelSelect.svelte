@@ -31,7 +31,7 @@ function handleChange(e: Event) {
 		{value}
 		onchange={handleChange}
 		{disabled}
-		class="appearance-none bg-transparent text-xs text-muted-foreground/70 hover:text-foreground pr-5 pl-2 py-1 rounded-lg cursor-pointer outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:text-foreground"
+		class="appearance-none bg-transparent text-xs text-muted-foreground/70 hover:text-foreground pr-5 py-1 rounded-lg cursor-pointer outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:text-foreground"
 	>
 		{#each providers as provider}
 			<optgroup label={provider}>

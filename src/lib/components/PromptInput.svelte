@@ -89,7 +89,7 @@ function handleKeydown(e: KeyboardEvent) {
   <!-- Bottom toolbar -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="absolute bottom-2 left-2 right-14 flex items-center"
+    class="absolute bottom-3 left-5 right-14 flex items-center"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.stopPropagation()}
   >
